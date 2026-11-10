@@ -1,0 +1,20 @@
+{
+  "name": "Akdeniz Terası: Bardak Birleştirme",
+  "short_name": "Akdeniz Bardak",
+  "description": "Akdeniz bahçesi terasında 3 boyutlu seramik ve kristal bardak birleştirme oyunu.",
+  "lang": "tr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0b3b3c",
+  "theme_color": "#0b3b3c",
+  "icons": [
+    {
+      "src": "skor_tabelasi.png",
+      "sizes": "1024x341",
+      "type": "image/png"
+    }
+  ]
+}
+

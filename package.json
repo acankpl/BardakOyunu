@@ -1,0 +1,30 @@
+{
+  "name": "akdeniz-terasi-bardak-birlestirme",
+  "version": "1.0.0",
+  "description": "Akdeniz Terası: 3B Bardak Birleştirme Mobil Oyunu (Android & iOS Capacitor Projesi - %100 Yerel & KVKK/GDPR Uyumlu)",
+  "main": "www/index.html",
+  "scripts": {
+    "sync:www": "node scripts/sync-www.js",
+    "serve": "npx http-server www -p 8080 -c-1 --cors",
+    "tunnel": "npx cloudflared tunnel --protocol http2 --url http://127.0.0.1:8080",
+    "start": "node -e \"console.log('Sunucu ve tünel başlatılıyor...');\" && npx concurrently \"npm run serve\" \"npm run tunnel\"",
+    "cap:sync": "npx cap sync",
+    "android:add": "npx cap add android",
+    "android:open": "npx cap open android",
+    "ios:add": "npx cap add ios",
+    "ios:open": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.0",
+    "@capacitor/app": "^6.0.0",
+    "@capacitor/core": "^6.1.0",
+    "@capacitor/haptics": "^6.0.0",
+    "@capacitor/ios": "^6.1.0",
+    "@capacitor/status-bar": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.0"
+  },
+  "private": true
+}
+

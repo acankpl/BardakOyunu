@@ -1,0 +1,3280 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self' data: blob:; media-src 'self' data: blob:;">
+    <meta name="theme-color" content="#0b3b3c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Akdeniz Bardak">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.webmanifest">
+    <title>Akdeniz Terası: Bardak Birleştirme</title>
+
+    <!-- 100% YEREL FONTLAR (Yurt dışına IP çıkışı yoktur - KVKK & GDPR Uyumlu) -->
+    <link rel="stylesheet" href="assets/fonts/fonts.css">
+
+    <!-- 100% YEREL 3B MOTOR VE MODEL YÜKLEYİCİLER -->
+    <script src="assets/vendor/three.min.js"></script>
+    <script src="assets/vendor/GLTFLoader.js"></script>
+    <script src="assets/vendor/inline_glbs.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #162a2a;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #fff8eb;
+            touch-action: none;
+        }
+
+        /* Gizlenen katmanların ve içindeki butonların tıklamaları ASLA engellememesi için kesin kural */
+        .hidden {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        .hidden * {
+            pointer-events: none !important;
+        }
+
+        #portrait-stage-wrapper {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            background: #1b3636;
+        }
+
+        /* Genişletilmiş Akdeniz Bahçesi Terası Oyun Arka Planı */
+        #terrace-bg-img {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            max-width: none;
+            max-height: none;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        #webgl-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: block;
+            cursor: pointer;
+            touch-action: none;
+        }
+
+        /* ===================================================================== */
+        /* ÜST OYUN HUD: SIRADAKİ KUPA PANELİ, SKOR TABELASI VE AYAR DİŞLİSİ    */
+        /* ===================================================================== */
+        #top-game-hud {
+            position: absolute;
+            top: max(8px, env(safe-area-inset-top, 8px));
+            left: 0;
+            right: 0;
+            z-index: 25;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            pointer-events: none;
+            padding: 0 max(10px, env(safe-area-inset-right, 10px)) 0 max(10px, env(safe-area-inset-left, 10px));
+            max-width: 620px;
+            margin: 0 auto;
+        }
+
+        /* Sol Üst: Sıradaki Kupa HUD Paneli-1.png ve içindeki PNG Bardak (Kompakt ve Dengeli Yükseklik) */
+        #next-cup-panel {
+            position: relative;
+            width: clamp(58px, 15vw, 82px);
+            aspect-ratio: 1 / 1;
+            margin-top: 7px;
+            pointer-events: none;
+            flex-shrink: 0;
+            filter: drop-shadow(0 8px 16px rgba(10, 28, 24, 0.50));
+            transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        #next-cup-panel.cup-pop {
+            transform: scale(1.07);
+        }
+
+        .next-panel-frame-img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        .next-cup-window {
+            position: absolute;
+            left: 20%;
+            top: 27%;
+            width: 60%;
+            height: 50%;
+            overflow: hidden;
+            border-radius: 14%;
+            pointer-events: none;
+        }
+
+        #next-cup-img {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transform-origin: 50% 50%;
+            filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.55));
+            transition: transform 0.2s ease;
+            pointer-events: none;
+        }
+
+        /* Orta Üst: skor_tabelasi.png ve üzerindeki skor yazısı */
+        .score-plaque-container {
+            position: relative;
+            left: -4px;
+            width: clamp(180px, 47vw, 280px);
+            aspect-ratio: 1024 / 341;
+            pointer-events: none;
+            margin-top: 2px;
+            filter: drop-shadow(0 10px 20px rgba(10, 28, 24, 0.52));
+            transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .score-plaque-container.score-bump {
+            transform: scale(1.06);
+        }
+
+        .score-plaque-img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        #hud-score {
+            position: absolute;
+            left: 50%;
+            top: 60.5%;
+            transform: translate(-50%, -50%);
+            width: 62%;
+            text-align: center;
+            font-family: 'Cinzel', serif;
+            font-weight: 900;
+            font-size: clamp(1.2rem, 4.7vw, 1.95rem);
+            letter-spacing: 0.06em;
+            line-height: 1;
+            color: #fff3c4;
+            background: linear-gradient(180deg, #fffbeb 0%, #fde68a 48%, #f59e0b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.78));
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        /* Sağ Üst: Oyun İçi Ayarlar Düğmesi (Skor tabelasıyla dengeli hizada) */
+        #hud-settings-btn {
+            position: relative;
+            width: clamp(50px, 13.5vw, 70px);
+            aspect-ratio: 1 / 1;
+            background: transparent;
+            border: none;
+            border-radius: 50%;
+            overflow: hidden;
+            padding: 0;
+            margin-top: 16px;
+            cursor: pointer;
+            pointer-events: auto;
+            flex-shrink: 0;
+            filter: drop-shadow(0 6px 14px rgba(10, 28, 24, 0.50));
+            transition: transform 0.15s ease;
+        }
+
+        #hud-settings-btn:hover {
+            transform: scale(1.05);
+        }
+
+        #hud-settings-btn:active {
+            transform: scale(0.93);
+        }
+
+        #hud-settings-btn img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        /* ===================================================================== */
+        /* AÇILIŞ & BAŞLAMA EKRANI (GENİŞLETİLMİŞ ARKA PLAN + PNG BUTONLAR)     */
+        /* ===================================================================== */
+        #start-menu-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            background-color: #1b3636;
+            overflow: hidden;
+        }
+
+        /* Genişletilmiş (1254x1254) Başlangıç Ekranı Görseli: Oyun arka planı ile aynı bleed mantığında çalışır */
+        #splash-bg-img {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            max-width: none;
+            max-height: none;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Merkezi 9:16 güvenli alan çerçevesi: Butonları 3 kupalı kaidenin tam altına hizalar */
+        #splash-safe-frame {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        /* BAŞLAT Butonu (Orijinal Altın çerçeveli BAŞLAT düğmesi-1.png, 2033x592 tam oranlı) */
+        #btn-splash-start {
+            position: absolute;
+            left: 50%;
+            top: 71.5%;
+            transform: translate(-50%, -50%);
+            width: 66%;
+            aspect-ratio: 2033 / 592;
+            background: transparent;
+            border: none;
+            border-radius: 999px;
+            overflow: visible;
+            padding: 0;
+            cursor: pointer;
+            pointer-events: auto;
+            filter: drop-shadow(0 12px 20px rgba(10, 30, 26, 0.48));
+            transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.16s ease;
+        }
+
+        #btn-splash-start:hover {
+            transform: translate(-50%, -51.5%) scale(1.025);
+            filter: drop-shadow(0 16px 26px rgba(10, 30, 26, 0.58)) brightness(1.05);
+        }
+
+        #btn-splash-start:active {
+            transform: translate(-50%, -49%) scale(0.965);
+        }
+
+        #btn-splash-start img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        /* Alt Yuvarlak Butonlar: Ayarlar (Sol) ve Ses (Sağ) */
+        .splash-circle-btn {
+            position: absolute;
+            top: 85.5%;
+            transform: translate(-50%, -50%);
+            width: 18.5%;
+            aspect-ratio: 1 / 1;
+            background: transparent;
+            border: none;
+            border-radius: 50%;
+            overflow: visible;
+            padding: 0;
+            cursor: pointer;
+            pointer-events: auto;
+            filter: drop-shadow(0 9px 14px rgba(68, 42, 16, 0.40));
+            transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.16s ease;
+        }
+
+        .splash-circle-btn:hover {
+            transform: translate(-50%, -51.5%) scale(1.04);
+            filter: drop-shadow(0 12px 18px rgba(68, 42, 16, 0.48)) brightness(1.04);
+        }
+
+        .splash-circle-btn:active {
+            transform: translate(-50%, -49%) scale(0.94);
+        }
+
+        .splash-circle-btn img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        #btn-splash-settings {
+            left: 36.5%;
+        }
+
+        #btn-splash-sound {
+            left: 63.5%;
+        }
+
+        #btn-splash-sound.sound-off::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 62%;
+            height: 5px;
+            background: #dc2626;
+            border: 1.5px solid #fef3c7;
+            border-radius: 99px;
+            transform: translate(-50%, -50%) rotate(-42deg);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+            pointer-events: none;
+        }
+
+        /* ===================================================================== */
+        /* YENİ AYARLAR MENÜSÜ PANELİ (Akdeniz Terası oyun ayarları paneli-2.png) */
+        /* ===================================================================== */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 60;
+            background: radial-gradient(circle at 50% 35%, rgba(10, 38, 40, 0.78) 0%, rgba(4, 18, 20, 0.92) 100%);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+        }
+
+        /* 1122x1402 oranlı yeni ayarlar kutusu */
+        .settings-panel-box {
+            position: relative;
+            width: min(94vw, calc(90dvh * 1122 / 1402));
+            max-width: 450px;
+            aspect-ratio: 1122 / 1402;
+            filter: drop-shadow(0 24px 48px rgba(0, 0, 0, 0.72));
+        }
+
+        .settings-panel-bg {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        /* Mevcut Skor ve En Yüksek Rekor Değerleri (Yeşil kutuların içi - Tam dikey ve yatay ortalı) */
+        .panel-score-val {
+            position: absolute;
+            top: 28.8%;
+            transform: translate(-50%, -50%);
+            width: 38%;
+            text-align: center;
+            font-family: 'Cinzel', serif;
+            font-weight: 900;
+            font-size: clamp(1.2rem, 5vw, 1.85rem);
+            color: #fff3c4;
+            background: linear-gradient(180deg, #fffbeb 0%, #fde68a 50%, #f59e0b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.75));
+            pointer-events: none;
+        }
+
+        #menu-current-score {
+            left: 27.2%;
+        }
+
+        #menu-high-score {
+            left: 71.5%;
+        }
+
+        /* KUPA GELİŞİMİ 7 Yuva İçindeki Kupa PNG'leri (Altın kutuların tam ortasında) */
+        .panel-cup-slot {
+            position: absolute;
+            top: 48.15%;
+            height: 9.0%;
+            transform: translateY(-50%);
+            overflow: hidden;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .panel-cup-slot img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            pointer-events: none;
+            filter: drop-shadow(0 2px 4px rgba(10, 26, 24, 0.40));
+        }
+
+        /* Panel Üzerindeki PNG Butonlar (Orijinal en-boy oranlarıyla bozulmasız yerleşim) */
+        .panel-img-btn {
+            position: absolute;
+            background: transparent;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: transform 0.14s ease, filter 0.14s ease;
+            filter: drop-shadow(0 4px 8px rgba(55, 35, 12, 0.28));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .panel-img-btn:hover {
+            transform: scale(1.025);
+            filter: drop-shadow(0 6px 12px rgba(55, 35, 12, 0.36)) brightness(1.03);
+        }
+
+        .panel-img-btn:active {
+            transform: scale(0.965);
+        }
+
+        .panel-img-btn img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: fill;
+            pointer-events: none;
+        }
+
+        /* 1. OYUNA DÖN Butonu */
+        #btn-panel-resume {
+            left: 26.5%;
+            top: 57.8%;
+            width: 47%;
+            aspect-ratio: 2075 / 514;
+            height: auto;
+            border-radius: 999px;
+        }
+
+        /* 2. YENİ OYUN BAŞLAT Butonu */
+        #btn-panel-restart {
+            left: 26.5%;
+            top: 68.4%;
+            width: 47%;
+            aspect-ratio: 2082 / 515;
+            height: auto;
+            border-radius: 999px;
+        }
+
+        /* 3. Orta Satır: SES, GRAFİK, ANA EKRAN (Her üçü de birebir aynı 26.2% x 9.0% boyutunda) */
+        #btn-panel-sound {
+            left: 8.7%;
+            top: 79.2%;
+            width: 26.2%;
+            height: 9.0%;
+            border-radius: 16px;
+        }
+
+        #btn-panel-gfx {
+            left: 36.9%;
+            top: 79.2%;
+            width: 26.2%;
+            height: 9.0%;
+            border-radius: 16px;
+        }
+
+        #btn-panel-home {
+            left: 65.1%;
+            top: 79.2%;
+            width: 26.2%;
+            height: 9.0%;
+            border-radius: 16px;
+        }
+
+        /* SES ve GRAFİK düğmelerinin alt yarılarındaki canlı durum metni */
+        .btn-sub-status {
+            position: absolute;
+            left: 50%;
+            top: 71.5%;
+            transform: translate(-50%, -50%);
+            font-family: 'Cinzel', serif;
+            font-weight: 900;
+            font-size: clamp(0.60rem, 2.3vw, 0.82rem);
+            color: #09484b;
+            letter-spacing: 0.05em;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        /* 4. Alt Satır (Altın çizginin altı): GİZLİLİK & KVKK, KULLANIM KOŞULLARI, VERİLERİ SIFIRLA */
+        #btn-panel-privacy {
+            left: 8.7%;
+            top: 90.0%;
+            width: 26.4%;
+            height: 4.45%;
+            border-radius: 999px;
+        }
+
+        #btn-panel-terms {
+            left: 36.8%;
+            top: 90.0%;
+            width: 26.4%;
+            height: 4.45%;
+            border-radius: 999px;
+        }
+
+        #btn-panel-reset {
+            left: 64.9%;
+            top: 90.0%;
+            width: 26.4%;
+            height: 4.45%;
+            border-radius: 999px;
+        }
+
+        /* ===================================================================== */
+        /* YASAL BİLGİLENDİRME (KVKK / GDPR / KULLANIM KOŞULLARI) MODALI         */
+        /* ===================================================================== */
+        .mediterranean-card {
+            width: 100%;
+            max-width: 460px;
+            max-height: 88dvh;
+            overflow-y: auto;
+            background: linear-gradient(165deg, #fbf0de 0%, #eed7b5 55%, #dfc196 100%);
+            border: 3px solid #c8912c;
+            border-radius: 28px;
+            box-shadow: 0 24px 50px rgba(0, 0, 0, 0.65), inset 0 2px 4px rgba(255, 255, 255, 0.85);
+            padding: 18px 16px;
+            color: #1f2937;
+            text-align: left;
+        }
+
+        .card-inner-frame {
+            border: 1.5px solid rgba(180, 124, 34, 0.45);
+            border-radius: 20px;
+            padding: 14px 12px;
+            background: rgba(255, 251, 242, 0.65);
+        }
+
+        .menu-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 999px;
+            background: #0d585c;
+            color: #fde68a;
+            font-size: 0.66rem;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            border: 1px solid #d4a13e;
+        }
+
+        .menu-title {
+            font-family: 'Cinzel', serif;
+            font-weight: 900;
+            font-size: 1.18rem;
+            color: #0b4649;
+            line-height: 1.2;
+            margin-bottom: 8px;
+        }
+
+        .legal-content-scroll {
+            max-height: 54dvh;
+            overflow-y: auto;
+            padding: 12px;
+            background: rgba(255, 252, 245, 0.92);
+            border: 1px solid rgba(180, 124, 34, 0.4);
+            border-radius: 14px;
+            font-size: 0.78rem;
+            line-height: 1.55;
+            color: #292524;
+            margin: 8px 0 12px;
+        }
+
+        .legal-content-scroll h4 {
+            font-family: 'Cinzel', serif;
+            color: #0b4649;
+            font-size: 0.85rem;
+            margin: 10px 0 4px;
+        }
+
+        .legal-content-scroll h4:first-child {
+            margin-top: 0;
+        }
+
+        .legal-content-scroll p,
+        .legal-content-scroll ul {
+            margin-bottom: 8px;
+        }
+
+        .legal-content-scroll ul {
+            padding-left: 18px;
+        }
+
+        .btn-legal-close {
+            display: block;
+            width: 82%;
+            margin: 0 auto;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .btn-legal-close img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        #toast-banner {
+            position: fixed;
+            bottom: clamp(74px, 11vh, 98px);
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            z-index: 80;
+            background: rgba(11, 56, 58, 0.96);
+            border: 1.5px solid #f59e0b;
+            color: #fffbeb;
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.22s ease, transform 0.22s ease;
+        }
+
+        #toast-banner.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ===================================================================== */
+        /* OYUN İÇİ ALT GÜÇLENDİRİCİ DOCK'U (BOOSTERS)                          */
+        /* ===================================================================== */
+        #bottom-boosters-dock {
+            position: absolute;
+            bottom: clamp(8px, 1.5vh, 15px);
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(8px, 2.0vw, 14px);
+            z-index: 35;
+            pointer-events: auto;
+            width: min(88%, 380px);
+        }
+
+        .booster-png-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            aspect-ratio: 1561 / 1008;
+            filter: drop-shadow(0 5px 12px rgba(0, 0, 0, 0.45));
+            transition: transform 0.14s ease, filter 0.14s ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            border-radius: 14px;
+        }
+
+        .booster-png-btn:hover {
+            transform: translateY(-2px) scale(1.03);
+            filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.60)) brightness(1.08);
+        }
+
+        .booster-png-btn:active {
+            transform: translateY(1px) scale(0.96);
+            filter: brightness(0.92);
+        }
+
+        .booster-png-btn img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        /* 3 Kupa Patlat Hedefleme Modu Üst Bilgi Şeridi */
+        #blast-mode-banner {
+            position: absolute;
+            top: clamp(80px, 12vh, 105px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(185, 28, 28, 0.94);
+            border: 1.5px solid #fca5a5;
+            color: #ffffff;
+            padding: 8px 16px;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 40;
+            font-size: clamp(0.75rem, 2.4vw, 0.88rem);
+            font-weight: 700;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+            pointer-events: auto;
+            white-space: nowrap;
+            animation: pulse-border 1.5s infinite;
+        }
+
+        @keyframes pulse-border {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+            50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+        }
+
+        .btn-cancel-blast {
+            background: #ffffff;
+            color: #991b1b;
+            border: none;
+            border-radius: 999px;
+            padding: 3px 10px;
+            font-size: 0.72rem;
+            font-weight: 900;
+            cursor: pointer;
+            transition: transform 0.12s ease;
+        }
+
+        .btn-cancel-blast:active {
+            transform: scale(0.93);
+        }
+
+        /* ===================================================================== */
+        /* ÖDÜLLÜ REKLAM MODALI (SİMÜLE REKLAM AKIŞI)                             */
+        /* ===================================================================== */
+        #rewarded-ad-modal {
+            z-index: 95 !important;
+        }
+
+        #game-over-modal {
+            z-index: 75 !important;
+        }
+
+        .rewarded-ad-card {
+            background: linear-gradient(180deg, #fefce8 0%, #fef3c7 40%, #fde68a 100%);
+            border: 3px solid #d97706;
+            border-radius: 24px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65), inset 0 2px 0 rgba(255, 255, 255, 0.8);
+            width: min(90%, 380px);
+            padding: 24px 20px 20px 20px;
+            text-align: center;
+            position: relative;
+            animation: modalPopIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .ad-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(217, 119, 6, 0.25);
+        }
+
+        .ad-tag {
+            font-size: 0.68rem;
+            font-weight: 900;
+            color: #78350f;
+            letter-spacing: 0.08em;
+            background: #fed7aa;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+
+        .ad-timer {
+            font-family: 'Cinzel', serif;
+            font-size: 0.85rem;
+            font-weight: 900;
+            color: #b45309;
+        }
+
+        .ad-brand-box {
+            padding: 12px 0 16px 0;
+        }
+
+        .ad-brand-icon {
+            font-size: 3.2rem;
+            line-height: 1;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+        }
+
+        .ad-brand-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.15rem;
+            font-weight: 900;
+            color: #1c3d39;
+            margin-bottom: 4px;
+        }
+
+        .ad-brand-sub {
+            font-size: 0.82rem;
+            color: #4b5563;
+            margin: 0;
+        }
+
+        .ad-progress-track {
+            width: 100%;
+            height: 10px;
+            background: rgba(0, 0, 0, 0.12);
+            border-radius: 999px;
+            overflow: hidden;
+            margin: 16px 0 20px 0;
+        }
+
+        .ad-progress-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+            border-radius: 999px;
+        }
+
+        .btn-ad-claim {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 999px;
+            border: 2px solid #b45309;
+            background: linear-gradient(180deg, #184c49 0%, #0d3635 100%);
+            color: #fffbeb;
+            font-family: 'Cinzel', serif;
+            font-size: 0.95rem;
+            font-weight: 900;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(13, 54, 53, 0.4);
+            transition: transform 0.14s ease, filter 0.14s ease;
+        }
+
+        .btn-ad-claim.disabled {
+            background: #9ca3af;
+            border-color: #6b7280;
+            color: #e5e7eb;
+            cursor: not-allowed;
+            box-shadow: none;
+            opacity: 0.65;
+        }
+
+        .btn-ad-claim:not(.disabled):hover {
+            transform: scale(1.02);
+            filter: brightness(1.1);
+        }
+
+        .btn-ad-claim:not(.disabled):active {
+            transform: scale(0.97);
+        }
+
+        /* ===================================================================== */
+        /* MASA DOLDU (GAME OVER) MODALI - YENİ LÜKS PANEL                      */
+        /* ===================================================================== */
+        .game-over-panel-box {
+            position: relative;
+            filter: drop-shadow(0 24px 50px rgba(0, 0, 0, 0.75));
+        }
+
+        .game-over-score-val {
+            position: absolute;
+            left: 50%;
+            top: 47.0%;
+            transform: translate(-50%, -50%);
+            width: 78%;
+            text-align: center;
+            font-family: 'Cinzel', serif;
+            font-weight: 900;
+            font-size: clamp(2.0rem, 8.5vw, 3.1rem);
+            color: #fff3c4;
+            background: linear-gradient(180deg, #ffffff 0%, #fef08a 45%, #f59e0b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.85));
+            pointer-events: none;
+            letter-spacing: 0.05em;
+        }
+
+        .gameover-btn-revive {
+            left: 19%;
+            top: 58.5%;
+            width: 62%;
+            aspect-ratio: 2172 / 724;
+            height: auto;
+            border-radius: 999px;
+        }
+
+        .gameover-btn-restart {
+            left: 21%;
+            top: 78.2%;
+            width: 58%;
+            aspect-ratio: 2082 / 515;
+            height: auto;
+            border-radius: 999px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="portrait-stage-wrapper">
+        <!-- 1. Genişletilmiş Akdeniz Bahçesi Terası Oyun Arka Plan Görseli -->
+        <img id="terrace-bg-img" src="Genişletilmiş Akdeniz bahçesi terası.png" alt="Akdeniz Bahçesi Terası">
+
+        <!-- 2. 3B Masa (.glb) ve Bardaklar Fizik Sahnesi Canvas -->
+        <canvas id="webgl-canvas"></canvas>
+
+        <!-- 4. ÜST OYUN HUD: SOLDA SIRADAKİ KUPA PANELİ, ORTADA SKOR TABELASI, SAĞDA AYARLAR -->
+        <header id="top-game-hud">
+            <div id="next-cup-panel" title="Sıradaki Gönderilecek Kupa">
+                <img src="Sıradaki Kupa HUD Paneli-1.png" alt="Sıradaki Kupa Paneli" class="next-panel-frame-img">
+                <div class="next-cup-window">
+                    <img id="next-cup-img" src="Mercan şeftali altın işlemeli kupa-3.png" alt="Sıradaki Kupa">
+                </div>
+            </div>
+
+            <div id="score-plaque" class="score-plaque-container">
+                <img src="skor_tabelasi.png" alt="Skor Tabelası" class="score-plaque-img">
+                <div id="hud-score">0</div>
+            </div>
+
+            <button id="hud-settings-btn" type="button" onclick="openSettingsModal(event)" aria-label="Ayarlar ve Menü"
+                title="Ayarlar ve Menü">
+                <img src="Fildişi Altın Ayar Dişlisi-1.png" alt="Ayarlar">
+            </button>
+        </header>
+
+        <!-- 5. AÇILIŞ & BAŞLAMA EKRANI: GENİŞLETİLMİŞ GÖRSEL (Akdeniz terasında altın kupa sergisi-1.png) ÜZERİNDE PNG BUTONLAR -->
+        <div id="start-menu-overlay">
+            <img id="splash-bg-img" src="Akdeniz terasında altın kupa sergisi-1.png"
+                alt="Akdeniz Terasında Altın Kupa Sergisi">
+
+            <div id="splash-safe-frame">
+                <!-- BAŞLAT Butonu -->
+                <button id="btn-splash-start" type="button" onclick="startOrResumeGame(event)"
+                    aria-label="Oyunu Başlat">
+                    <img src="Altın çerçeveli BAŞLAT düğmesi-1.png" alt="BAŞLAT">
+                </button>
+
+                <!-- AYARLAR Butonu -->
+                <button id="btn-splash-settings" type="button" class="splash-circle-btn"
+                    onclick="openSettingsModal(event)" aria-label="Ayarlar">
+                    <img src="Fildişi Altın Ayar Dişlisi-1.png" alt="Ayarlar">
+                </button>
+
+                <!-- SES Butonu -->
+                <button id="btn-splash-sound" type="button" class="splash-circle-btn"
+                    onclick="toggleSoundEffects(event)" aria-label="Ses Aç/Kapat">
+                    <img src="Altın çerçeveli ses düğmesi-2.png" alt="Ses">
+                </button>
+            </div>
+        </div>
+
+        <!-- 6. YENİ AYARLAR MENÜSÜ PANELİ (Altın çerçeveli oyun ayarları paneli-2.png ve Yeni PNG Butonlar) -->
+        <div id="settings-modal-overlay" class="modal-backdrop hidden">
+            <div class="settings-panel-box">
+                <img src="Altın çerçeveli oyun ayarları paneli-2.png" alt="Akdeniz Terası Oyun Ayarları Paneli"
+                    class="settings-panel-bg">
+
+                <!-- Mevcut Skor ve En Yüksek Rekor -->
+                <div id="menu-current-score" class="panel-score-val">0</div>
+                <div id="menu-high-score" class="panel-score-val">0</div>
+
+                <!-- KUPA GELİŞİMİ: 7 Yuvadaki Kupa PNG Görselleri (Özel Hizalanmış, Ortak Taban Çizgili & Kusursuz Orantılı) -->
+                <div class="panel-cup-slot" style="left: 6.42%; width: 11.45%;">
+                    <img src="kupa_slot_1.png" alt="1. Kase">
+                </div>
+                <div class="panel-cup-slot" style="left: 19.52%; width: 11.27%;">
+                    <img src="kupa_slot_2.png" alt="2. Kehribar">
+                </div>
+                <div class="panel-cup-slot" style="left: 32.26%; width: 11.10%;">
+                    <img src="kupa_slot_3.png" alt="3. Kulplu">
+                </div>
+                <div class="panel-cup-slot" style="left: 44.92%; width: 10.92%;">
+                    <img src="kupa_slot_4.png" alt="4. Fildişi">
+                </div>
+                <div class="panel-cup-slot" style="left: 57.35%; width: 10.97%;">
+                    <img src="kupa_slot_5.png" alt="5. Mavi">
+                </div>
+                <div class="panel-cup-slot" style="left: 69.79%; width: 11.00%;">
+                    <img src="kupa_slot_6.png" alt="6. Turkuaz">
+                </div>
+                <div class="panel-cup-slot" style="left: 82.17%; width: 11.32%;">
+                    <img src="kupa_slot_7.png" alt="7. Şampiyon Kadeh">
+                </div>
+
+                <!-- OYUNA DÖN Butonu -->
+                <button id="btn-panel-resume" type="button" class="panel-img-btn"
+                    onclick="closeSettingsAndResume(event)" aria-label="Oyuna Dön">
+                    <img src="Altın çerçeveli turkuaz oyuna dön düğmesi-6.png" alt="Oyuna Dön">
+                </button>
+
+                <!-- YENİ OYUN BAŞLAT Butonu -->
+                <button id="btn-panel-restart" type="button" class="panel-img-btn" onclick="restartNewGame(event)"
+                    aria-label="Yeni Oyun Başlat">
+                    <img src="Yeni oyun başlat düğmesi-7.png" alt="Yeni Oyun Başlat">
+                </button>
+
+                <!-- SES Butonu -->
+                <button id="btn-panel-sound" type="button" class="panel-img-btn" onclick="toggleSoundEffects(event)"
+                    aria-label="Ses Ayarı">
+                    <img src="Zarif Akdeniz bahçesi ses düğmesi-7.png" alt="Ses">
+                    <span id="settings-sound-state" class="btn-sub-status">AÇIK</span>
+                </button>
+
+                <!-- GRAFİK Butonu -->
+                <button id="btn-panel-gfx" type="button" class="panel-img-btn" onclick="toggleGraphicsQuality(event)"
+                    aria-label="Grafik Ayarı">
+                    <img src="Fildişi grafik ayar düğmesi-6.png" alt="Grafik">
+                    <span id="settings-gfx-state" class="btn-sub-status">YÜKSEK</span>
+                </button>
+
+                <!-- ANA EKRAN Butonu -->
+                <button id="btn-panel-home" type="button" class="panel-img-btn" onclick="returnToMainSplash(event)"
+                    aria-label="Ana Ekran">
+                    <img src="Fildişi altın ana ekran düğmesi-5.png" alt="Ana Ekran">
+                </button>
+
+                <!-- GİZLİLİK & KVKK Butonu -->
+                <button id="btn-panel-privacy" type="button" class="panel-img-btn"
+                    onclick="openLegalModal('privacy', event)" aria-label="Gizlilik ve KVKK">
+                    <img src="Fildişi ve altın gizlilik düğmesi-9.png" alt="Gizlilik ve KVKK">
+                </button>
+
+                <!-- KULLANIM KOŞULLARI Butonu -->
+                <button id="btn-panel-terms" type="button" class="panel-img-btn"
+                    onclick="openLegalModal('terms', event)" aria-label="Kullanım Koşulları">
+                    <img src="İkonlu kullanım koşulları düğmesi-10.png" alt="Kullanım Koşulları">
+                </button>
+
+                <!-- VERİLERİ SIFIRLA Butonu -->
+                <button id="btn-panel-reset" type="button" class="panel-img-btn" onclick="resetAllUserData(event)"
+                    aria-label="Verileri Sıfırla">
+                    <img src="Akdeniz bahçesi veri sıfırlama butonu-8.png" alt="Verileri Sıfırla">
+                </button>
+            </div>
+        </div>
+
+        <!-- 7. YASAL BİLGİLENDİRME (KVKK / GDPR / KULLANIM KOŞULLARI) MODALI -->
+        <div id="legal-modal-overlay" class="modal-backdrop hidden">
+            <div class="mediterranean-card">
+                <div class="card-inner-frame">
+                    <span class="menu-badge">YASAL BİLGİLENDİRME</span>
+                    <h2 id="legal-modal-title" class="menu-title">Gizlilik ve KVKK Aydınlatma Metni</h2>
+                    <div id="legal-modal-body" class="legal-content-scroll"></div>
+                    <button type="button" class="btn-legal-close" onclick="closeLegalModal(event)">
+                        <img src="Altın çerçeveli turkuaz oyuna dön düğmesi-6.png" alt="Kapat">
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. OYUN İÇİ ALT GÜÇLENDİRİCİ DOCK'U (3 KUPA PATLAT, DEPREM, MANYETİK ÇEKİM) -->
+        <div id="bottom-boosters-dock">
+            <button id="btn-booster-blast" class="booster-png-btn" type="button" onclick="activateBooster('blast', event)" title="Seçilen 3 bardağı patlat">
+                <img src="Reklamlı bomba güçlendirme butonu-4.png" alt="3 Kupa Patlat">
+            </button>
+            <button id="btn-booster-shake" class="booster-png-btn" type="button" onclick="activateBooster('shake', event)" title="Masayı sallar ve bardakları karıştırır">
+                <img src="Altın çerçeveli Deprem Salla düğmesi-5.png" alt="Deprem Salla">
+            </button>
+            <button id="btn-booster-magnet" class="booster-png-btn" type="button" onclick="activateBooster('magnet', event)" title="Aynı bardakları birbirine çeker">
+                <img src="Altın Kenarlı Manyetik Çekim Butonu-3.png" alt="Manyetik Çekim">
+            </button>
+        </div>
+
+        <!-- 3 Kupa Patlat Hedefleme Modu Bilgi Şeridi -->
+        <div id="blast-mode-banner" class="hidden">
+            <span>🎯 Patlatmak istediğin bardağa dokun (<strong id="blast-count-text">3</strong> kaldı)</span>
+            <button type="button" class="btn-cancel-blast" onclick="cancelBlastMode(event)">İptal</button>
+        </div>
+
+        <!-- 9. ÖDÜLLÜ REKLAM MODALI (SİMÜLASYON) -->
+        <div id="rewarded-ad-modal" class="modal-backdrop hidden">
+            <div class="rewarded-ad-card">
+                <div class="ad-header">
+                    <span class="ad-tag">SPONSORLU REKLAM</span>
+                    <span class="ad-timer" id="ad-timer-text">3 sn</span>
+                </div>
+                <div class="ad-body">
+                    <div class="ad-brand-box">
+                        <div class="ad-brand-icon">🏺</div>
+                        <div class="ad-brand-title">Akdeniz Kupa Efsanesi</div>
+                        <p class="ad-brand-sub">Ödülünüz hazırlanıyor, lütfen bekleyin...</p>
+                    </div>
+                    <div class="ad-progress-track">
+                        <div id="ad-progress-bar" class="ad-progress-fill"></div>
+                    </div>
+                </div>
+                <button id="btn-ad-claim" type="button" class="btn-ad-claim disabled" onclick="claimAdReward(event)">
+                    ÖDÜLÜ AL & KULLAN
+                </button>
+            </div>
+        </div>
+
+        <!-- 10. MASA DOLDU (GAME OVER) MODALI -->
+        <div id="game-over-modal" class="modal-backdrop hidden">
+            <div class="settings-panel-box game-over-panel-box">
+                <img src="Masa tamamen doldu, oyun sona erdi-1.png" alt="Masa Doldu Oyun Sona Erdi"
+                    class="settings-panel-bg">
+
+                <!-- Skor Değeri (Yeşil skor kutusunun tam ortası) -->
+                <div id="game-over-score-val" class="game-over-score-val">0</div>
+
+                <!-- 1. ZÜMRÜT REKLAMLI TEMİZLE VE DEVAM ET BUTONU -->
+                <button id="btn-revive-ad" type="button" class="panel-img-btn gameover-btn-revive"
+                    onclick="startReviveRewardedAd(event)" aria-label="7. Seviye Kadehleri Temizle & Devam Et">
+                    <img src="Zümrüt temizle ve devam et butonu-8.png" alt="7. Seviye Kadehleri Temizle & Devam Et">
+                </button>
+
+                <!-- 2. YENİ OYUN BAŞLAT BUTONU -->
+                <button id="btn-gameover-restart" type="button" class="panel-img-btn gameover-btn-restart"
+                    onclick="restartNewGame(event)" aria-label="Yeni Oyun Başlat">
+                    <img src="Yeni oyun başlat düğmesi-7.png" alt="Yeni Oyun Başlat">
+                </button>
+            </div>
+        </div>
+
+        <!-- BİLDİRİM TOAST -->
+        <div id="toast-banner"></div>
+    </div>
+
+    <script>
+        // =========================================================================
+        // 1. SABİTLER, 3B MASA (.GLB) ÖLÇÜLERİ VE 7 SEVİYE BARDAK TANIMLARI
+        // =========================================================================
+        const TABLE_GLB_FILE = 'Meshy_AI_Stylized_Table_1109212732_texture.glb';
+        const TABLE_GLB_SCALE = 8.6;
+        // Meshy_AI_Stylized_Table_1109212732_texture.glb iç turkuaz yatak sınırları:
+        // X: ±1.845, Z: ±3.65, Y_bed: +0.0635 (Y=0 düzlemine oturtulur).
+        // Bardakların üst ağızlarının bile ahşap/altın kenarlıklara ASLA taşmaması için güvenli iç sınırlar:
+        const TABLE_WIDTH = 4.53;
+        const TABLE_DEPTH = 8.16;
+        const RAIL_THICKNESS = 0.47;
+        // İç turkuaz yatağın kenarlarına tam oturan, bardakların masanın kenarlıklarına doğal biçimde yanaşmasını sağlayan sınırlar:
+        const PLAY_MIN_X = -1.82;
+        const PLAY_MAX_X = 1.82;
+        const PLAY_MIN_Z = -3.62;
+        const PLAY_MAX_Z = 3.55;
+        const LAUNCH_Z = 2.95;
+
+        // Dinamik kayma mekaniği: Başlangıçta atik ve hızlı, masanın sonuna vardıkça akıcı şekilde yavaşlayan fizik sabitleri
+        const INITIAL_LAUNCH_SPEED = 0.33;
+        const SURFACE_FRICTION = 0.982;
+        const SURFACE_DRAG_DECEL = 0.0002;
+        const WALL_BOUNCE = 0.60;
+        const COLLISION_RESTITUTION = 0.68;
+        const POST_COLLISION_GRIP = 0.90;
+        const MERGE_VELOCITY_CARRY = 0.28;
+
+        // Genişletilmiş (1254x1254) arka plan ve başlangıç görsellerinin merkezi 9:16 güvenli alanı
+        const EXPANDED_IMG_W = 1254;
+        const EXPANDED_IMG_H = 1254;
+        const CORE_SAFE_W = 608;
+        const CORE_SAFE_H = 1080;
+
+        const GLASS_LEVELS = {
+            1: {
+                level: 1,
+                type: 'shot',
+                glbFile: 'Meshy_AI_peach_ceramic_bowl_1109192231_texture.glb',
+                pngFile: 'Mercan şeftali altın işlemeli kupa-3.png',
+                hudTransform: 'translate(0.4%, -46.8%) scale(1.94)',
+                name: 'Seviye 1: Mercan Şeftali Kase',
+                shortName: '1. Kase',
+                height: 0.32,
+                baseRadius: 0.170,
+                topRadius: 0.220,
+                radius: 0.220,
+                mass: 1.2,
+                liquidColor: 0xe07a5f
+            },
+            2: {
+                level: 2,
+                type: 'tea',
+                glbFile: 'Meshy_AI_ochre_tumbler_1109192259_texture.glb',
+                pngFile: 'Bal kehribar altın zeytin kupası-2.png',
+                hudTransform: 'translate(0%, -29.0%) scale(1.68)',
+                name: 'Seviye 2: Bal Kehribar Kupa',
+                shortName: '2. Kehribar',
+                height: 0.46,
+                baseRadius: 0.200,
+                topRadius: 0.270,
+                radius: 0.270,
+                mass: 1.6,
+                liquidColor: 0xd97706
+            },
+            3: {
+                level: 3,
+                type: 'mug',
+                glbFile: 'Meshy_AI_olive_ceramic_mug_1109191611_texture.glb',
+                pngFile: 'Adaçayı yeşili altın kulplu kupa-1.png',
+                hudTransform: 'translate(-6.2%, -21.0%) scale(1.60)',
+                name: 'Seviye 3: Adaçayı Yeşili Kulplu Kupa',
+                shortName: '3. Kulplu',
+                height: 0.68,
+                baseRadius: 0.260,
+                topRadius: 0.380,
+                radius: 0.380,
+                mass: 2.3,
+                liquidColor: 0x65a30d
+            },
+            4: {
+                level: 4,
+                type: 'carafe',
+                glbFile: 'Meshy_AI_cream_trophy_cup_1109192238_texture.glb',
+                pngFile: 'Altın zeytin yapraklı fildişi kupa-6.png',
+                hudTransform: 'translate(0.4%, 0.4%) scale(0.92)',
+                name: 'Seviye 4: Altın Zeytin Yapraklı Fildişi Kupa',
+                shortName: '4. Fildişi',
+                height: 0.86,
+                baseRadius: 0.250,
+                topRadius: 0.430,
+                radius: 0.430,
+                mass: 3.0,
+                visualScale: 1.15,
+                liquidColor: 0xf59e0b
+            },
+            5: {
+                level: 5,
+                type: 'whiskey',
+                glbFile: 'Meshy_AI_blue_faceted_cup_1109192249_texture.glb',
+                pngFile: 'Kobalt Mavi Altınlı Altıgen Kupa-7.png',
+                hudTransform: 'translate(0.7%, -2.8%) scale(1.08)',
+                name: 'Seviye 5: Kobalt Mavi Altıgen Kupa',
+                shortName: '5. Mavi',
+                height: 0.98,
+                baseRadius: 0.320,
+                topRadius: 0.490,
+                radius: 0.490,
+                mass: 3.8,
+                liquidColor: 0x2563eb
+            },
+            6: {
+                level: 6,
+                type: 'water',
+                glbFile: 'Meshy_AI_teal_faceted_cup_1109192254_texture.glb',
+                pngFile: 'Turkuaz altın süslemeli Akdeniz bardağı-4.png',
+                hudTransform: 'translate(0.4%, -9.4%) scale(1.22)',
+                name: 'Seviye 6: Turkuaz Akdeniz Bardağı',
+                shortName: '6. Turkuaz',
+                height: 1.06,
+                baseRadius: 0.330,
+                topRadius: 0.515,
+                radius: 0.515,
+                mass: 4.4,
+                liquidColor: 0x0d9488
+            },
+            7: {
+                level: 7,
+                type: 'wine',
+                glbFile: 'Meshy_AI_purple_goblet_1109192244_texture.glb',
+                pngFile: 'Altın saplı ametist lale kadehi-5.png',
+                hudTransform: 'translate(0.1%, 0.1%) scale(0.96)',
+                name: 'Seviye 7: Altın Saplı Ametist Lale Kadehi',
+                shortName: '7. Şampiyon Kadeh',
+                height: 1.38,
+                baseRadius: 0.270,
+                topRadius: 0.590,
+                radius: 0.590,
+                mass: 5.8,
+                liquidColor: 0x9333ea
+            }
+        };
+
+        function getEffectiveContactRadius(spec, contactHeight) {
+            if (!spec) return 0.25;
+            const baseR = spec.baseRadius || (spec.radius * 0.65);
+            const topR = spec.topRadius || spec.radius;
+            const h = spec.height || 0.8;
+            const t = Math.max(0, Math.min(1, contactHeight / h));
+            return THREE.MathUtils.lerp(baseR, topR, t);
+        }
+
+        const STORAGE_KEYS = {
+            HIGH_SCORE: 'akdeniz_bardak_high_score_v1',
+            SOUND_ENABLED: 'akdeniz_bardak_sound_v1'
+        };
+
+        // =========================================================================
+        // 2. OYUN DURUMU DEĞİŞKENLERİ
+        // =========================================================================
+        let scene, camera, renderer, dirLight, ambientLight, hemiLight;
+        let envMapTexture = null;
+        let billiardRailsGroup, aimGuideGroup, tableModelGroup, tableFallbackMesh;
+        let customGLBModels = {};
+        let highQualityMode = true;
+
+        let isGameActive = false;
+        let hasStartedOnce = false;
+        let soundEnabled = true;
+        let audioCtx = null;
+
+        let glasses = [];
+        let waitingGlass = null;
+        let currentAimX = 0;
+        let nextRandomLevel = 1;
+        let isSpawningNext = false;
+        let glassIdCounter = 1;
+        let gameScore = 0;
+        let highScore = 0;
+        let totalMerges = 0;
+
+        let explosionEffects = [];
+        let frictionTrailEffects = [];
+
+        // Masa Doldu (Game Over), Güçlendiriciler ve Ödüllü Reklam Durumları
+        let isGameOver = false;
+        let tableFullWarningTimer = 0;
+
+        let isTargetBlastActive = false;
+        let remainingBlasts = 0;
+
+        let isEarthquakeActive = false;
+        let earthquakeStartTime = 0;
+        let earthquakeDuration = 1800;
+
+        let adTimerInterval = null;
+        let pendingAdReward = null;
+
+        // 3B Masanın alt reklam butonlarının kesinlikle üstünde kalmasını sağlayan kamera açısı
+        const camState = {
+            target: new THREE.Vector3(0, -0.75, 0.62),
+            distance: 13.5,
+            azimuth: 0,
+            polar: 49 * (Math.PI / 180),
+            fov: 41
+        };
+
+        const raycaster = new THREE.Raycaster();
+        const mouseNDC = new THREE.Vector2();
+        const dragPlaneXZ = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const planeIntersectPoint = new THREE.Vector3();
+
+        // =========================================================================
+        // 3. YEREL SES MOTORU (WEBAUDIO SYNTH - HARİCİ DOSYA VEYA AĞ GEREKTİRMEZ)
+        // =========================================================================
+        function loadSavedPreferences() {
+            try {
+                const savedHigh = parseInt(localStorage.getItem(STORAGE_KEYS.HIGH_SCORE) || '0', 10);
+                if (!isNaN(savedHigh) && savedHigh > 0) highScore = savedHigh;
+
+                const savedSound = localStorage.getItem(STORAGE_KEYS.SOUND_ENABLED);
+                if (savedSound !== null) {
+                    soundEnabled = savedSound === '1';
+                }
+            } catch (e) { }
+            updateSoundButtonUI();
+            updateScoreHUD();
+        }
+
+        function saveHighScore(val) {
+            highScore = val;
+            try {
+                localStorage.setItem(STORAGE_KEYS.HIGH_SCORE, String(highScore));
+            } catch (e) { }
+        }
+
+        function ensureAudioContext() {
+            if (!soundEnabled) return null;
+            if (!audioCtx) {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) audioCtx = new AudioCtx();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume().catch(() => { });
+            }
+            return audioCtx;
+        }
+
+        function playGameSound(type, level = 1) {
+            if (!soundEnabled) return;
+            const ctx = ensureAudioContext();
+            if (!ctx) return;
+
+            const now = ctx.currentTime;
+            if (type === 'launch') {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(260, now);
+                osc.frequency.exponentialRampToValueAtTime(140, now + 0.22);
+                gain.gain.setValueAtTime(0.11, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.23);
+            } else if (type === 'clink') {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(680 + level * 45, now);
+                gain.gain.setValueAtTime(0.045, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.07);
+            } else if (type === 'merge') {
+                const baseFreq = 360 + level * 65;
+                [1, 1.25, 1.5].forEach((mult, idx) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    const startT = now + idx * 0.045;
+                    osc.frequency.setValueAtTime(baseFreq * mult, startT);
+                    gain.gain.setValueAtTime(0.11, startT);
+                    gain.gain.exponentialRampToValueAtTime(0.001, startT + 0.24);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(startT);
+                    osc.stop(startT + 0.25);
+                });
+            }
+        }
+
+        function stopEvt(ev) {
+            if (ev && typeof ev.stopPropagation === 'function') {
+                ev.stopPropagation();
+            }
+        }
+
+        function toggleSoundEffects(ev) {
+            stopEvt(ev);
+            soundEnabled = !soundEnabled;
+            try {
+                localStorage.setItem(STORAGE_KEYS.SOUND_ENABLED, soundEnabled ? '1' : '0');
+            } catch (e) { }
+            updateSoundButtonUI();
+            if (soundEnabled) {
+                playGameSound('merge', 2);
+                showToast('🔊 Ses efektleri açıldı');
+            } else {
+                showToast('🔇 Ses efektleri kapatıldı');
+            }
+        }
+
+        function updateSoundButtonUI() {
+            const stateEl = document.getElementById('settings-sound-state');
+            if (stateEl) {
+                stateEl.textContent = soundEnabled ? 'AÇIK' : 'KAPALI';
+            }
+            const splashSoundBtn = document.getElementById('btn-splash-sound');
+            if (splashSoundBtn) {
+                splashSoundBtn.classList.toggle('sound-off', !soundEnabled);
+            }
+        }
+
+        function toggleGraphicsQuality(ev) {
+            stopEvt(ev);
+            highQualityMode = !highQualityMode;
+            const stateEl = document.getElementById('settings-gfx-state');
+            if (stateEl) {
+                stateEl.textContent = highQualityMode ? 'YÜKSEK' : 'AKICI';
+            }
+            if (renderer && dirLight) {
+                renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, highQualityMode ? 1.75 : 1.15));
+            }
+            showToast(highQualityMode ? '✨ Grafik kalitesi: Yüksek' : '⚡ Grafik kalitesi: Akıcı');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast-banner');
+            if (!toast) return;
+            toast.textContent = msg;
+            toast.classList.add('show');
+            clearTimeout(showToast._timer);
+            showToast._timer = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2200);
+        }
+
+        // =========================================================================
+        // 4. AÇILIŞ EKRANI, AYARLAR VE YASAL ZORUNLULUK (KVKK / GDPR) MODALLARI
+        // =========================================================================
+        function startOrResumeGame(ev) {
+            stopEvt(ev);
+            ensureAudioContext();
+            document.getElementById('start-menu-overlay').classList.add('hidden');
+            document.getElementById('settings-modal-overlay').classList.add('hidden');
+            document.getElementById('legal-modal-overlay').classList.add('hidden');
+
+            if (!hasStartedOnce) {
+                hasStartedOnce = true;
+                startFreshGameSession();
+            }
+            isGameActive = true;
+        }
+
+        function openSettingsModal(ev) {
+            stopEvt(ev);
+            isGameActive = false;
+            updateScoreHUD();
+            document.getElementById('settings-modal-overlay').classList.remove('hidden');
+        }
+
+        function closeSettingsAndResume(ev) {
+            stopEvt(ev);
+            document.getElementById('settings-modal-overlay').classList.add('hidden');
+            const splashVisible = !document.getElementById('start-menu-overlay').classList.contains('hidden');
+            if (!splashVisible) {
+                if (!hasStartedOnce) {
+                    hasStartedOnce = true;
+                    startFreshGameSession();
+                }
+                isGameActive = true;
+            }
+        }
+
+        function returnToMainSplash(ev) {
+            stopEvt(ev);
+            isGameActive = false;
+            document.getElementById('settings-modal-overlay').classList.add('hidden');
+            document.getElementById('legal-modal-overlay').classList.add('hidden');
+            document.getElementById('start-menu-overlay').classList.remove('hidden');
+            updateResponsiveTerraceLayout();
+        }
+
+        function restartNewGame(ev) {
+            stopEvt(ev);
+            ensureAudioContext();
+            document.getElementById('start-menu-overlay').classList.add('hidden');
+            document.getElementById('settings-modal-overlay').classList.add('hidden');
+            document.getElementById('legal-modal-overlay').classList.add('hidden');
+            hasStartedOnce = true;
+            startFreshGameSession();
+            isGameActive = true;
+            showToast('Yeni oyun başlatıldı!');
+        }
+
+        function openLegalModal(section, ev) {
+            stopEvt(ev);
+            const modal = document.getElementById('legal-modal-overlay');
+            const titleEl = document.getElementById('legal-modal-title');
+            const bodyEl = document.getElementById('legal-modal-body');
+
+            if (section === 'privacy') {
+                titleEl.textContent = 'Gizlilik Politikası ve KVKK Aydınlatma Metni';
+                bodyEl.innerHTML = `
+                    <h4>1. Veri Sorumlusu ve Sıfır Yurt Dışı Veri Aktarımı</h4>
+                    <p>6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") ve Avrupa Birliği Genel Veri Koruma Tüzüğü ("GDPR") uyarınca gizliliğiniz en üst düzeyde korunmaktadır. Bu oyun <strong>%100 yerel (offline-first)</strong> mimari ile çalışır.</p>
+                    <ul>
+                        <li><strong>Yurt Dışına IP Çıkışı Yoktur:</strong> Oyun içerisindeki tüm yazı tipleri (fontlar), 3B modeller (.glb), görseller ve ses sentezleyicileri uygulama paketinin kendi içinde yerel olarak barındırılır. Google Fonts veya yabancı CDN sunucularına hiçbir ağ bağlantısı yapılmaz; IP adresiniz yurt dışına aktarılmaz.</li>
+                        <li><strong>Kişisel Veri Toplanmaz:</strong> Kimlik, konum, rehber, kamera, mikrofon veya cihaz tanımlayıcı verileriniz toplanmaz, işlenmez ve üçüncü taraflarla paylaşılmaz.</li>
+                    </ul>
+                    <h4>2. Cihaz İçi Yerel Depolama (LocalStorage)</h4>
+                    <p>Yalnızca oyun deneyiminizi sürdürebilmek amacıyla <em>En Yüksek Rekor Skorunuz</em> ve <em>Ses Tercihiniz</em> cihazınızın kendi hafızasında saklanır. Bu veriler cihazınızdan dışarı çıkmaz.</p>
+                    <h4>3. KVKK Madde 11 Kapsamındaki Haklarınız</h4>
+                    <p>Ayarlar menüsünde yer alan <strong>"Verileri Sıfırla"</strong> butonunu kullanarak cihazınızda kayıtlı tüm oyun verilerini dilediğiniz an kalıcı olarak silebilirsiniz.</p>
+                `;
+            } else {
+                titleEl.textContent = 'Kullanım Koşulları ve Yasal Bilgiler';
+                bodyEl.innerHTML = `
+                    <h4>1. Genel Kullanım ve Yaş Uygunluğu</h4>
+                    <p><strong>Akdeniz Terası: Bardak Birleştirme</strong>, her yaş grubuna (Genel İzleyici / PEGI 3 / App Store 4+) uygun, şiddet veya kumar unsuru içermeyen 3 boyutlu bir beceri ve bulmaca oyunudur.</p>
+                    <h4>2. Oyun İçi Satın Alma ve Reklam</h4>
+                    <p>Oyunda zorunlu reklam, takip çerezi (tracker) veya yanıltıcı mikro ödeme mekaniği bulunmamaktadır.</p>
+                    <h4>3. Fikri Mülkiyet ve Sağlık Uyarısı</h4>
+                    <p>Oyundaki 3B masa tasarımı, Akdeniz terası sahnesi ve seramik/kristal bardak modelleri telif hakları kapsamında korunmaktadır. Uzun süreli mobil oyun kullanımlarında her 45 dakikada bir 10 dakika gözlerinizi dinlendirmeniz önerilir.</p>
+                `;
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeLegalModal(ev) {
+            stopEvt(ev);
+            document.getElementById('legal-modal-overlay').classList.add('hidden');
+        }
+
+        function resetAllUserData(ev) {
+            stopEvt(ev);
+            try {
+                localStorage.removeItem(STORAGE_KEYS.HIGH_SCORE);
+                localStorage.removeItem(STORAGE_KEYS.SOUND_ENABLED);
+            } catch (e) { }
+            highScore = 0;
+            gameScore = 0;
+            totalMerges = 0;
+            soundEnabled = true;
+            updateSoundButtonUI();
+            updateScoreHUD();
+            showToast('Tüm yerel oyun verileri ve rekor sıfırlandı.');
+        }
+
+        // =========================================================================
+        // 5. GENİŞLETİLMİŞ ARKA PLAN BLEED ÖLÇEKLEME & MASA PERSPEKTİF HİZALAMA
+        // =========================================================================
+        function getStageDimensions() {
+            const wrapper = document.getElementById('portrait-stage-wrapper');
+            if (wrapper) {
+                const rect = wrapper.getBoundingClientRect();
+                if (rect.width > 0 && rect.height > 0) {
+                    return { width: rect.width, height: rect.height };
+                }
+            }
+            return {
+                width: Math.max(1, window.innerWidth),
+                height: Math.max(1, window.innerHeight)
+            };
+        }
+
+        // Hem oyun arka planını hem de yeni genişletilmiş başlangıç ekranı arka planını aynı bleed mantığıyla ölçekler
+        function updateResponsiveTerraceLayout() {
+            const dims = getStageDimensions();
+            const W = dims.width;
+            const H = dims.height;
+
+            const safeScale = Math.min(W / CORE_SAFE_W, H / CORE_SAFE_H);
+            const coverScale = Math.max(W / EXPANDED_IMG_W, H / EXPANDED_IMG_H) * 1.06;
+            const bgScale = Math.max(safeScale, coverScale);
+
+            const renderW = Math.ceil(EXPANDED_IMG_W * bgScale);
+            const renderH = Math.ceil(EXPANDED_IMG_H * bgScale);
+            const isLandscapeWide = (W / H) > 1.15;
+            const anchorY = isLandscapeWide ? 57 : 50;
+
+            ['terrace-bg-img', 'splash-bg-img'].forEach(id => {
+                const img = document.getElementById(id);
+                if (!img) return;
+                img.style.width = `${renderW}px`;
+                img.style.height = `${renderH}px`;
+                img.style.left = '50%';
+                img.style.top = `${anchorY}%`;
+                img.style.transform = `translate(-50%, -${anchorY}%)`;
+            });
+
+            // Başlangıç ekranındaki butonların yer aldığı merkezi 9:16 güvenli çerçeveyi kaidenin tam altına oturtur
+            const splashFrame = document.getElementById('splash-safe-frame');
+            if (splashFrame) {
+                const frameW = Math.round(CORE_SAFE_W * safeScale);
+                const frameH = Math.round(CORE_SAFE_H * safeScale);
+                splashFrame.style.width = `${frameW}px`;
+                splashFrame.style.height = `${frameH}px`;
+            }
+        }
+
+        function createCausticGlowTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createRadialGradient(64, 64, 4, 64, 64, 60);
+            grad.addColorStop(0, 'rgba(255, 250, 220, 0.55)');
+            grad.addColorStop(0.45, 'rgba(255, 230, 160, 0.24)');
+            grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 128, 128);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        const causticBaseTexture = createCausticGlowTexture();
+
+        // Bardakların sağ arkasına ve tabanına düşen belirgin, doğal gölge dokusu (Sıfır kutu artefaktı, pürüzsüz geçiş)
+        function createCupShadowTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 512, 512);
+
+            // 1. Kupanın sağ arkasına uzanan belirgin yönlü gölge (Cast Shadow towards sağ-arka: +X, -Z)
+            // Canvas Y < 256 kısmı sahne -Z (arka) yönüdür, Canvas X > 256 kısmı sahne +X (sağ) yönüdür.
+            ctx.save();
+            ctx.translate(284, 195); // Sağa (+X) ve arkaya (-Z) ofset
+            ctx.scale(1.28, 1.48);  // Sağ arkaya doğru uzayan yumuşak eliptik gölge
+            const castGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, 85);
+            castGrad.addColorStop(0, 'rgba(2, 14, 18, 0.72)');
+            castGrad.addColorStop(0.35, 'rgba(3, 18, 22, 0.48)');
+            castGrad.addColorStop(0.65, 'rgba(4, 24, 28, 0.18)');
+            castGrad.addColorStop(0.85, 'rgba(4, 24, 28, 0.0)');
+            castGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = castGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, 85, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // 2. Kupanın tabanında masaya basmasını sağlayan koyu temas gölgesi (Ambient Occlusion)
+            ctx.save();
+            ctx.translate(256, 276);
+            ctx.scale(1.10, 0.95);
+            const contactGrad = ctx.createRadialGradient(0, 0, 6, 0, 0, 55);
+            contactGrad.addColorStop(0, 'rgba(1, 8, 10, 0.88)');
+            contactGrad.addColorStop(0.35, 'rgba(2, 12, 14, 0.62)');
+            contactGrad.addColorStop(0.70, 'rgba(3, 18, 20, 0.18)');
+            contactGrad.addColorStop(0.88, 'rgba(0, 0, 0, 0)');
+            contactGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = contactGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, 55, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.generateMipmaps = true;
+            return tex;
+        }
+
+        const cupShadowBaseTexture = createCupShadowTexture();
+
+        function generateStudioEnvMap(rendererInstance) {
+            const pmremGenerator = new THREE.PMREMGenerator(rendererInstance);
+            pmremGenerator.compileCubemapShader();
+
+            const envScene = new THREE.Scene();
+            envScene.background = new THREE.Color(0x1e293b);
+
+            const skyLight = new THREE.Mesh(
+                new THREE.SphereGeometry(20, 24, 12),
+                new THREE.MeshBasicMaterial({ color: 0x334155, side: THREE.BackSide })
+            );
+            envScene.add(skyLight);
+
+            const stripGeo = new THREE.PlaneGeometry(10, 3);
+            const strip1 = new THREE.Mesh(stripGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide }));
+            strip1.position.set(0, 10, 6);
+            strip1.lookAt(0, 0, 0);
+            envScene.add(strip1);
+
+            const strip2 = new THREE.Mesh(stripGeo, new THREE.MeshBasicMaterial({ color: 0xbae6fd, side: THREE.DoubleSide }));
+            strip2.position.set(-10, 6, -6);
+            strip2.lookAt(0, 0, 0);
+            envScene.add(strip2);
+
+            const strip3 = new THREE.Mesh(stripGeo, new THREE.MeshBasicMaterial({ color: 0xfde68a, side: THREE.DoubleSide }));
+            strip3.position.set(10, 5, -4);
+            strip3.lookAt(0, 0, 0);
+            envScene.add(strip3);
+
+            const renderTarget = pmremGenerator.fromScene(envScene, 0.04);
+            pmremGenerator.dispose();
+            return renderTarget.texture;
+        }
+
+        // =========================================================================
+        // 6. 3B SAHNE VE BARDAK MODELLEME KURULUMU
+        // =========================================================================
+        function initScene() {
+            updateResponsiveTerraceLayout();
+
+            const canvas = document.getElementById('webgl-canvas');
+            const dims = getStageDimensions();
+
+            renderer = new THREE.WebGLRenderer({
+                canvas,
+                antialias: true,
+                alpha: true,
+                powerPreference: 'high-performance'
+            });
+            renderer.setClearColor(0x000000, 0);
+            renderer.setSize(dims.width, dims.height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            renderer.toneMapping = THREE.NoToneMapping;
+            renderer.toneMappingExposure = 1.0;
+
+            scene = new THREE.Scene();
+            scene.background = null;
+
+            envMapTexture = generateStudioEnvMap(renderer);
+            scene.environment = null;
+
+            camera = new THREE.PerspectiveCamera(camState.fov, dims.width / dims.height, 0.1, 160);
+            updateCameraFromSpherical();
+
+            // Orijinal GLB doku renklerini parlatmadan/beyazlatmadan birebir doygunluğunda gösteren dengeli ışıklandırma
+            ambientLight = new THREE.AmbientLight(0xffffff, 0.76);
+            scene.add(ambientLight);
+
+            hemiLight = new THREE.HemisphereLight(0xffffff, 0xf3e5ab, 0.12);
+            hemiLight.position.set(0, 22, 0);
+            scene.add(hemiLight);
+
+            dirLight = new THREE.DirectionalLight(0xfffcf2, 0.20);
+            dirLight.position.set(-5.8, 12.5, 4.2);
+            scene.add(dirLight);
+
+            buildLaunchLineOverlay();
+            buildAimGuideGizmo();
+
+            preloadAllDefaultGLBCups();
+            startFreshGameSession();
+        }
+
+        function updateCameraFromSpherical() {
+            const dims = getStageDimensions();
+            const W = dims.width;
+            const H = dims.height;
+            const aspect = W / H;
+
+            // Ekran ne kadar daralırsa daralsın masanın yanlarının ve altının asla ekrandan taşmamasını sağlayan orantı:
+            let responsiveDist;
+            if (aspect < 0.5625) {
+                // Dar mobil ekranlar (9:16, 9:19.5, 9:20 veya daraltılmış pencere): Yan kenarlar hep ~%90 dolulukta kalır, asla taşmaz
+                responsiveDist = 12.6 * (0.5625 / Math.max(0.32, aspect)) * 0.92;
+            } else if (aspect < 1.0) {
+                // Tablet ve kareye yakın dikey ekranlar
+                responsiveDist = 11.6 - (aspect - 0.5625) * 1.5;
+            } else {
+                // Yatay ekranlar
+                responsiveDist = 11.0;
+            }
+
+            const sinP = Math.sin(camState.polar);
+            const cosP = Math.cos(camState.polar);
+            const sinA = Math.sin(camState.azimuth);
+            const cosA = Math.cos(camState.azimuth);
+
+            camera.position.x = camState.target.x + responsiveDist * sinP * sinA;
+            camera.position.y = camState.target.y + responsiveDist * cosP;
+            camera.position.z = camState.target.z + responsiveDist * sinP * cosA;
+
+            camera.fov = camState.fov;
+            camera.aspect = W / H;
+            camera.updateProjectionMatrix();
+            camera.lookAt(camState.target);
+        }
+
+        function createTableShadowTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            ctx.save();
+            ctx.scale(1, 2);
+            const grad = ctx.createRadialGradient(128, 128, 28, 128, 128, 120);
+            grad.addColorStop(0, 'rgba(38, 24, 10, 0.45)');
+            grad.addColorStop(0.65, 'rgba(38, 24, 10, 0.22)');
+            grad.addColorStop(1, 'rgba(38, 24, 10, 0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 256, 256);
+            ctx.restore();
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function buildLaunchLineOverlay() {
+            billiardRailsGroup = new THREE.Group();
+
+            // 1. 3B Masanın Akdeniz Terası Zemini Üzerine Düşen Yumuşak Gölgesi
+            const floorShadowGeo = new THREE.PlaneGeometry(TABLE_WIDTH * 1.18, TABLE_DEPTH * 1.12);
+            const floorShadowMat = new THREE.MeshBasicMaterial({
+                map: createTableShadowTexture(),
+                transparent: true,
+                depthWrite: false
+            });
+            const floorShadow = new THREE.Mesh(floorShadowGeo, floorShadowMat);
+            floorShadow.rotation.x = -Math.PI / 2;
+            floorShadow.position.set(0, -1.16, 0.05);
+            billiardRailsGroup.add(floorShadow);
+
+            // 2. 3B Masa (.glb) Grubu ve Anlık Yükleme Öncesi Yedek Yüzey
+            tableModelGroup = new THREE.Group();
+            const fbGeo = new THREE.BoxGeometry(TABLE_WIDTH, 0.24, TABLE_DEPTH);
+            const fbMat = new THREE.MeshStandardMaterial({ color: 0x4eb8b8, roughness: 0.45, metalness: 0.05 });
+            tableFallbackMesh = new THREE.Mesh(fbGeo, fbMat);
+            tableFallbackMesh.position.set(0, -0.125, 0);
+            tableModelGroup.add(tableFallbackMesh);
+            billiardRailsGroup.add(tableModelGroup);
+
+            // 3. Fırlatma (Baulk) Çizgisi
+            const lineGeo = new THREE.PlaneGeometry((PLAY_MAX_X - PLAY_MIN_X) * 0.98, 0.022);
+            const lineMat = new THREE.MeshBasicMaterial({ color: 0xfef3c7, transparent: true, opacity: 0.46, side: THREE.DoubleSide });
+            const baulkLine = new THREE.Mesh(lineGeo, lineMat);
+            baulkLine.rotation.x = -Math.PI / 2;
+            baulkLine.position.set(0, 0.005, LAUNCH_Z);
+            billiardRailsGroup.add(baulkLine);
+
+            scene.add(billiardRailsGroup);
+        }
+
+        function buildAimGuideGizmo() {
+            aimGuideGroup = new THREE.Group();
+            const aimGeo = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0.08, LAUNCH_Z),
+                new THREE.Vector3(0, 0.08, PLAY_MIN_Z + 0.35)
+            ]);
+            const aimMat = new THREE.LineDashedMaterial({
+                color: 0xfde047,
+                dashSize: 0.28,
+                gapSize: 0.16,
+                transparent: true,
+                opacity: 0.85
+            });
+            const aimLine = new THREE.Line(aimGeo, aimMat);
+            aimLine.computeLineDistances();
+            aimLine.name = 'aimLine';
+            aimGuideGroup.add(aimLine);
+
+            const targetRingGeo = new THREE.RingGeometry(0.18, 0.28, 24);
+            const targetRingMat = new THREE.MeshBasicMaterial({
+                color: 0xfde047,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.85
+            });
+            const targetRing = new THREE.Mesh(targetRingGeo, targetRingMat);
+            targetRing.rotation.x = -Math.PI / 2;
+            targetRing.position.set(0, 0.012, PLAY_MIN_Z + 0.35);
+            targetRing.name = 'targetRing';
+            aimGuideGroup.add(targetRing);
+
+            aimGuideGroup.visible = true;
+            scene.add(aimGuideGroup);
+        }
+
+        // =========================================================================
+        // 7. 7 SEVİYE .GLB BARDAK YÜKLEYİCİ VE PROSEDÜREL YEDEK MODELLER
+        // =========================================================================
+        function createFacetedCrystalMaterial(tint = 0xffffff, opacity = 0.82, roughness = 0.06) {
+            return new THREE.MeshPhysicalMaterial({
+                color: tint,
+                transparent: true,
+                opacity: opacity,
+                roughness: roughness,
+                metalness: 0.08,
+                reflectivity: 0.98,
+                clearcoat: 1.0,
+                clearcoatRoughness: 0.04,
+                flatShading: true,
+                envMap: envMapTexture,
+                envMapIntensity: 1.8,
+                side: THREE.DoubleSide
+            });
+        }
+
+        function buildGlassByLevel(levelNum) {
+            const spec = GLASS_LEVELS[levelNum] || GLASS_LEVELS[1];
+            const root = new THREE.Group();
+            const R = spec.radius;
+            const H = spec.height;
+
+            const shadowWidth = R * 3.2;
+            const shadowHeight = R * 3.8;
+            const shadowMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(shadowWidth, shadowHeight),
+                new THREE.MeshBasicMaterial({
+                    map: cupShadowBaseTexture,
+                    transparent: true,
+                    opacity: 0.75,
+                    depthWrite: false
+                })
+            );
+            shadowMesh.rotation.x = -Math.PI / 2;
+            shadowMesh.position.set(R * 0.12, 0.003, -R * 0.22);
+            root.add(shadowMesh);
+
+            let glassMesh = null;
+            if (customGLBModels[levelNum]) {
+                glassMesh = customGLBModels[levelNum].clone(true);
+                root.add(glassMesh);
+            } else {
+                const points = [
+                    new THREE.Vector2(0.00, 0.02),
+                    new THREE.Vector2(R * 0.78, 0.02),
+                    new THREE.Vector2(R, H),
+                    new THREE.Vector2(R * 0.88, H),
+                    new THREE.Vector2(R * 0.70, 0.08),
+                    new THREE.Vector2(0.00, 0.08)
+                ];
+                glassMesh = new THREE.Mesh(
+                    new THREE.LatheGeometry(points, 12),
+                    createFacetedCrystalMaterial(spec.liquidColor, 0.88, 0.12)
+                );
+                root.add(glassMesh);
+            }
+
+            root.userData = {
+                id: glassIdCounter++,
+                level: spec.level,
+                type: spec.type,
+                name: spec.name,
+                shortName: spec.shortName,
+                height: spec.height,
+                radius: spec.radius,
+                baseRadius: spec.baseRadius || (spec.radius * 0.65),
+                topRadius: spec.topRadius || spec.radius,
+                mass: spec.mass,
+                vx: 0,
+                vz: 0,
+                isWaitingToLaunch: false,
+                spawnAnimScale: 1.0,
+                glassMesh: glassMesh,
+                shadowMesh: shadowMesh,
+                causticMesh: shadowMesh
+            };
+
+            return root;
+        }
+
+        function prepareNormalizedGLBCup(rawScene, spec) {
+            const model = rawScene.clone(true);
+            model.traverse(child => {
+                if (child.isMesh) {
+                    child.castShadow = false;
+                    child.receiveShadow = false;
+                    if (child.geometry && !child.geometry.attributes.normal) {
+                        child.geometry.computeVertexNormals();
+                    }
+                    if (child.material) {
+                        if (child.material.map) {
+                            child.material.map.encoding = THREE.sRGBEncoding;
+                            if (renderer) {
+                                child.material.map.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+                            }
+                            child.material.map.needsUpdate = true;
+                        }
+                        child.material.roughness = 0.90;
+                        child.material.metalness = 0.0;
+                        child.material.envMap = null;
+                        child.material.envMapIntensity = 0.0;
+                        child.material.needsUpdate = true;
+                    }
+                }
+            });
+
+            const box = new THREE.Box3().setFromObject(model);
+            const size = new THREE.Vector3();
+            box.getSize(size);
+
+            const maxHorizSpan = Math.max(size.x, size.z);
+            const scaleXZ = (spec.radius * 1.88) / Math.max(0.01, maxHorizSpan);
+            const scaleY = (spec.height * 1.12) / Math.max(0.01, size.y);
+            const baseScale = Math.min(scaleXZ, scaleY);
+            const scale = baseScale * (spec.visualScale || 1.0);
+            model.scale.setScalar(scale);
+
+            const newBox = new THREE.Box3().setFromObject(model);
+            const wrapper = new THREE.Group();
+            model.position.x -= (newBox.min.x + newBox.max.x) / 2;
+            model.position.z -= (newBox.min.z + newBox.max.z) / 2;
+            model.position.y -= newBox.min.y;
+            wrapper.add(model);
+            return wrapper;
+        }
+
+        function upgradeExistingGlassesForLevel(lvl) {
+            if (!customGLBModels[lvl]) return;
+            glasses.forEach(g => {
+                if (g.userData && g.userData.level === lvl) {
+                    if (g.userData.glassMesh) g.remove(g.userData.glassMesh);
+                    const customClone = customGLBModels[lvl].clone(true);
+                    g.add(customClone);
+                    g.userData.glassMesh = customClone;
+                }
+            });
+        }
+
+        async function decompressGzipBase64ToArrayBuffer(b64) {
+            const binStr = atob(b64);
+            const bytes = new Uint8Array(binStr.length);
+            for (let i = 0; i < binStr.length; i++) {
+                bytes[i] = binStr.charCodeAt(i);
+            }
+            if (typeof DecompressionStream !== 'undefined') {
+                const ds = new DecompressionStream('gzip');
+                const writer = ds.writable.getWriter();
+                writer.write(bytes);
+                writer.close();
+                return await new Response(ds.readable).arrayBuffer();
+            }
+            return bytes.buffer;
+        }
+
+        function applyLoadedTableGLB(gltf) {
+            if (!tableModelGroup || !gltf || !gltf.scene) return;
+            const tableMesh = gltf.scene.clone(true);
+            tableMesh.traverse(child => {
+                if (child.isMesh) {
+                    if (child.geometry && !child.geometry.attributes.normal) {
+                        child.geometry.computeVertexNormals();
+                    }
+                    if (child.material) {
+                        if (child.material.map) {
+                            child.material.map.encoding = THREE.sRGBEncoding;
+                            if (renderer) {
+                                child.material.map.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+                            }
+                            child.material.map.needsUpdate = true;
+                        }
+                        child.material.roughness = 0.92;
+                        child.material.metalness = 0.0;
+                        child.material.envMap = null;
+                        child.material.envMapIntensity = 0.0;
+                        child.material.needsUpdate = true;
+                    }
+                }
+            });
+
+            // GLB içindeki uzun eksen (X) dünya Z eksenine, kısa eksen (Z) dünya X eksenine döner.
+            // İç turkuaz yatak (localY = +0.0635) tam Y = 0 fizik düzlemine oturtulur.
+            tableMesh.rotation.y = Math.PI / 2;
+            tableMesh.scale.setScalar(TABLE_GLB_SCALE);
+            tableMesh.position.set(0, -0.0635 * TABLE_GLB_SCALE, 0);
+
+            if (tableFallbackMesh) {
+                tableFallbackMesh.visible = false;
+            }
+            tableModelGroup.add(tableMesh);
+        }
+
+        function preloadAllDefaultGLBCups() {
+            const loader = new THREE.GLTFLoader();
+            const inlineMap = window.INLINE_GLB_GZIP_B64 || {};
+            const isFileProtocol = (window.location.protocol === 'file:');
+
+            // 1. 3B Masa Modelini (.glb) Yükle
+            const loadTableFromInline = async () => {
+                const gzB64 = inlineMap[TABLE_GLB_FILE];
+                if (!gzB64) return;
+                try {
+                    const arrayBuffer = await decompressGzipBase64ToArrayBuffer(gzB64);
+                    loader.parse(arrayBuffer, '', applyLoadedTableGLB);
+                } catch (e) { }
+            };
+
+            if (isFileProtocol && inlineMap[TABLE_GLB_FILE]) {
+                loadTableFromInline();
+            } else {
+                loader.load(
+                    TABLE_GLB_FILE,
+                    applyLoadedTableGLB,
+                    undefined,
+                    () => { loadTableFromInline(); }
+                );
+            }
+
+            // 2. 7 Seviye 3B Kupa Modellerini (.glb) Yükle
+            Object.keys(GLASS_LEVELS).forEach(async (key) => {
+                const lvl = parseInt(key, 10);
+                const spec = GLASS_LEVELS[lvl];
+                if (!spec || !spec.glbFile) return;
+
+                const applyLoadedGltf = (gltf) => {
+                    customGLBModels[lvl] = prepareNormalizedGLBCup(gltf.scene, spec);
+                    upgradeExistingGlassesForLevel(lvl);
+                };
+
+                const loadFromInlineFallback = async () => {
+                    const gzB64 = inlineMap[spec.glbFile];
+                    if (!gzB64) return;
+                    try {
+                        const arrayBuffer = await decompressGzipBase64ToArrayBuffer(gzB64);
+                        loader.parse(arrayBuffer, '', applyLoadedGltf);
+                    } catch (e) { }
+                };
+
+                if (isFileProtocol && inlineMap[spec.glbFile]) {
+                    await loadFromInlineFallback();
+                } else {
+                    loader.load(
+                        spec.glbFile,
+                        applyLoadedGltf,
+                        undefined,
+                        () => { loadFromInlineFallback(); }
+                    );
+                }
+            });
+        }
+
+        // =========================================================================
+        // 8. OYUN AKIŞI, SIRADAKİ PNG KUPA PANELİ VE DENGELİ SÜRTÜNME FİZİĞİ
+        // =========================================================================
+        function pickRandomSpawnLevel() {
+            return Math.floor(Math.random() * 4) + 1;
+        }
+
+        function updateScoreHUD() {
+            const scoreEl = document.getElementById('hud-score');
+            if (scoreEl) {
+                scoreEl.textContent = gameScore.toLocaleString('tr-TR');
+            }
+
+            if (gameScore > highScore) {
+                saveHighScore(gameScore);
+            }
+
+            const menuCurr = document.getElementById('menu-current-score');
+            const menuHigh = document.getElementById('menu-high-score');
+            if (menuCurr) menuCurr.textContent = gameScore.toLocaleString('tr-TR');
+            if (menuHigh) menuHigh.textContent = highScore.toLocaleString('tr-TR');
+
+            const nextSpec = GLASS_LEVELS[nextRandomLevel] || GLASS_LEVELS[1];
+            const nextImgEl = document.getElementById('next-cup-img');
+            if (nextImgEl) {
+                nextImgEl.src = nextSpec.pngFile;
+                nextImgEl.alt = nextSpec.name;
+                nextImgEl.style.transform = nextSpec.hudTransform || 'scale(1)';
+            }
+        }
+
+        function triggerScorePlaqueBump() {
+            const plaque = document.getElementById('score-plaque');
+            if (!plaque) return;
+            plaque.classList.remove('score-bump');
+            void plaque.offsetWidth;
+            plaque.classList.add('score-bump');
+            clearTimeout(triggerScorePlaqueBump._t);
+            triggerScorePlaqueBump._t = setTimeout(() => {
+                plaque.classList.remove('score-bump');
+            }, 220);
+        }
+
+        let showcaseBadgesGroup = null;
+
+        function createLevelBadgeTexture(levelNum, label) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            ctx.beginPath();
+            ctx.arc(128, 128, 118, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.94)';
+            ctx.fill();
+            ctx.lineWidth = 10;
+            ctx.strokeStyle = '#d97706';
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(128, 128, 102, 0, Math.PI * 2);
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#fef08a';
+            ctx.stroke();
+
+            ctx.fillStyle = '#fde047';
+            ctx.font = 'bold 88px Cinzel, serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(String(levelNum), 128, 98);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 24px Plus Jakarta Sans, sans-serif';
+            ctx.fillText(label || ('SEV. ' + levelNum), 128, 172);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.encoding = THREE.sRGBEncoding;
+            return tex;
+        }
+
+        function spawnShowcaseLineup() {
+            if (showcaseBadgesGroup) {
+                scene.remove(showcaseBadgesGroup);
+                showcaseBadgesGroup = null;
+            }
+            showcaseBadgesGroup = new THREE.Group();
+
+            // Eski vitrin bardaklarını temizle
+            for (let i = glasses.length - 1; i >= 0; i--) {
+                if (glasses[i].userData && glasses[i].userData.isShowcase) {
+                    scene.remove(glasses[i]);
+                    glasses.splice(i, 1);
+                }
+            }
+
+            // Soldan sağa: 1'den (en küçük) 7'ye (en büyük) yan yana dizilim
+            const lineup = [
+                { lvl: 1, x: -1.38, z: -1.50 },
+                { lvl: 2, x: -0.92, z: -0.55 },
+                { lvl: 3, x: -0.46, z: -1.50 },
+                { lvl: 4, x: 0.00, z: -0.55 },
+                { lvl: 5, x: 0.46, z: -1.50 },
+                { lvl: 6, x: 0.92, z: -0.55 },
+                { lvl: 7, x: 1.38, z: -1.50 }
+            ];
+
+            lineup.forEach(item => {
+                const spec = GLASS_LEVELS[item.lvl];
+                const cup = buildGlassByLevel(item.lvl);
+                cup.position.set(item.x, 0, item.z);
+                cup.userData.isShowcase = true;
+                cup.userData.isWaitingToLaunch = false;
+                cup.userData.mass = 99999;
+                cup.userData.vx = 0;
+                cup.userData.vz = 0;
+                cup.userData.spawnAnimScale = 1.0;
+                cup.scale.setScalar(1.0);
+                scene.add(cup);
+                glasses.push(cup);
+
+                const badgeRadius = Math.max(0.26, spec.radius * 1.15);
+                const badgeGeo = new THREE.PlaneGeometry(badgeRadius * 2, badgeRadius * 2);
+                const badgeMat = new THREE.MeshBasicMaterial({
+                    map: createLevelBadgeTexture(item.lvl, spec.shortName),
+                    transparent: true,
+                    opacity: 0.95,
+                    depthWrite: false
+                });
+                const badgeMesh = new THREE.Mesh(badgeGeo, badgeMat);
+                badgeMesh.rotation.x = -Math.PI / 2;
+                badgeMesh.position.set(item.x, 0.005, item.z);
+                showcaseBadgesGroup.add(badgeMesh);
+            });
+
+            scene.add(showcaseBadgesGroup);
+            updateCaustics();
+        }
+
+        function clearAllGlasses() {
+            glasses.forEach(g => scene.remove(g));
+            glasses = [];
+            waitingGlass = null;
+            if (showcaseBadgesGroup) {
+                scene.remove(showcaseBadgesGroup);
+                showcaseBadgesGroup = null;
+            }
+        }
+
+        function startFreshGameSession() {
+            isGameOver = false;
+            tableFullWarningTimer = 0;
+            exitBlastMode();
+            const gameOverModal = document.getElementById('game-over-modal');
+            if (gameOverModal) gameOverModal.classList.add('hidden');
+
+            isSpawningNext = false;
+            gameScore = 0;
+            totalMerges = 0;
+            currentAimX = 0;
+            clearAllGlasses();
+
+            nextRandomLevel = pickRandomSpawnLevel();
+            updateScoreHUD();
+            spawnWaitingGlassAtShortEdge();
+        }
+
+        function spawnWaitingGlassAtShortEdge() {
+            const spawnLvl = nextRandomLevel;
+            nextRandomLevel = pickRandomSpawnLevel();
+            updateScoreHUD();
+
+            const nextPanel = document.getElementById('next-cup-panel');
+            if (nextPanel) {
+                nextPanel.classList.remove('cup-pop');
+                void nextPanel.offsetWidth;
+                nextPanel.classList.add('cup-pop');
+                setTimeout(() => nextPanel.classList.remove('cup-pop'), 200);
+            }
+
+            const g = buildGlassByLevel(spawnLvl);
+            const r = g.userData.radius;
+            const clampedX = THREE.MathUtils.clamp(currentAimX, PLAY_MIN_X + r, PLAY_MAX_X - r);
+            g.position.set(clampedX, 0, LAUNCH_Z);
+            g.userData.isWaitingToLaunch = true;
+            g.userData.spawnAnimScale = 0.2;
+            g.scale.setScalar(0.2);
+
+            scene.add(g);
+            glasses.push(g);
+            waitingGlass = g;
+            updateStraightAimGuide(clampedX);
+            updateCaustics();
+        }
+
+        function updateStraightAimGuide(rawX) {
+            const r = waitingGlass ? waitingGlass.userData.radius : 0.26;
+            currentAimX = THREE.MathUtils.clamp(rawX, PLAY_MIN_X + r, PLAY_MAX_X - r);
+
+            if (waitingGlass && waitingGlass.userData.isWaitingToLaunch) {
+                waitingGlass.position.x = currentAimX;
+                waitingGlass.position.z = LAUNCH_Z;
+            }
+
+            if (!aimGuideGroup) return;
+            const aimLine = aimGuideGroup.getObjectByName('aimLine');
+            const targetRing = aimGuideGroup.getObjectByName('targetRing');
+            const farZ = PLAY_MIN_Z + r + 0.08;
+
+            if (aimLine) {
+                const pos = aimLine.geometry.attributes.position.array;
+                pos[0] = currentAimX;
+                pos[1] = 0.05;
+                pos[2] = LAUNCH_Z - r;
+                pos[3] = currentAimX;
+                pos[4] = 0.05;
+                pos[5] = farZ;
+                aimLine.geometry.attributes.position.needsUpdate = true;
+                aimLine.computeLineDistances();
+            }
+            if (targetRing) {
+                targetRing.position.set(currentAimX, 0.012, farZ);
+            }
+        }
+
+        function launchWaitingGlassStraightAtX(clickX) {
+            if (!isGameActive || !waitingGlass || !waitingGlass.userData.isWaitingToLaunch || isSpawningNext) return;
+
+            updateStraightAimGuide(clickX);
+            const launched = waitingGlass;
+            launched.userData.isWaitingToLaunch = false;
+            launched.userData.isLaunchedSlide = true;
+            launched.userData.launchGraceTime = 0.35;
+            launched.position.x = currentAimX;
+            launched.position.z = LAUNCH_Z;
+            launched.userData.vx = 0;
+            launched.userData.vz = -INITIAL_LAUNCH_SPEED;
+
+            playGameSound('launch', launched.userData.level);
+
+            waitingGlass = null;
+            isSpawningNext = true;
+
+            setTimeout(() => {
+                isSpawningNext = false;
+                spawnWaitingGlassAtShortEdge();
+            }, 420);
+        }
+
+        function spawnMergeExplosion(x, y, z, colorHex, radius) {
+            const group = new THREE.Group();
+            group.position.set(x, y + 0.18, z);
+
+            const ringGeo = new THREE.RingGeometry(radius * 0.4, radius * 0.68, 24);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: colorHex,
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.9
+            });
+            const shockRing = new THREE.Mesh(ringGeo, ringMat);
+            shockRing.rotation.x = -Math.PI / 2;
+            group.add(shockRing);
+
+            const particles = [];
+            const pGeo = new THREE.OctahedronGeometry(0.055, 0);
+            for (let i = 0; i < 14; i++) {
+                const pMat = new THREE.MeshBasicMaterial({
+                    color: i % 2 === 0 ? colorHex : 0xfef08a,
+                    transparent: true,
+                    opacity: 1.0
+                });
+                const p = new THREE.Mesh(pGeo, pMat);
+                const ang = (i / 14) * Math.PI * 2;
+                const spd = 0.04 + Math.random() * 0.055;
+                p.userData = {
+                    vx: Math.cos(ang) * spd,
+                    vy: 0.04 + Math.random() * 0.055,
+                    vz: Math.sin(ang) * spd
+                };
+                group.add(p);
+                particles.push(p);
+            }
+
+            scene.add(group);
+            explosionEffects.push({ group, shockRing, particles, age: 0, maxAge: 26 });
+        }
+
+        function updateExplosionEffects() {
+            for (let i = explosionEffects.length - 1; i >= 0; i--) {
+                const ef = explosionEffects[i];
+                ef.age++;
+                const t = ef.age / ef.maxAge;
+
+                ef.shockRing.scale.setScalar(1 + t * 3.1);
+                ef.shockRing.material.opacity = (1 - t) * 0.85;
+
+                ef.particles.forEach(p => {
+                    p.position.x += p.userData.vx;
+                    p.position.y += p.userData.vy;
+                    p.position.z += p.userData.vz;
+                    p.userData.vy -= 0.0035;
+                    p.material.opacity = 1 - t;
+                });
+
+                if (ef.age >= ef.maxAge) {
+                    scene.remove(ef.group);
+                    explosionEffects.splice(i, 1);
+                }
+            }
+        }
+
+        function spawnFrictionSlideTrail(x, z, radius, colorHex) {
+            const trailGeo = new THREE.CircleGeometry(radius * 0.42, 12);
+            const trailMat = new THREE.MeshBasicMaterial({
+                color: colorHex,
+                transparent: true,
+                opacity: 0.20,
+                depthWrite: false
+            });
+            const mesh = new THREE.Mesh(trailGeo, trailMat);
+            mesh.rotation.x = -Math.PI / 2;
+            mesh.position.set(x, 0.004, z);
+            scene.add(mesh);
+            frictionTrailEffects.push({ mesh, age: 0, maxAge: 16 });
+        }
+
+        function updateFrictionTrailEffects() {
+            for (let i = frictionTrailEffects.length - 1; i >= 0; i--) {
+                const tr = frictionTrailEffects[i];
+                tr.age++;
+                const t = tr.age / tr.maxAge;
+                tr.mesh.material.opacity = (1 - t) * 0.18;
+                tr.mesh.scale.setScalar(1 - t * 0.35);
+                if (tr.age >= tr.maxAge) {
+                    scene.remove(tr.mesh);
+                    frictionTrailEffects.splice(i, 1);
+                }
+            }
+        }
+
+        function updateCaustics() {
+            glasses.forEach(g => {
+                const shadow = g.userData.shadowMesh || g.userData.causticMesh;
+                if (!shadow) return;
+                const r = g.userData.radius || 0.26;
+                shadow.position.y = -g.position.y + 0.003;
+                shadow.position.x = r * 0.12;
+                shadow.position.z = -r * 0.22;
+            });
+        }
+
+        function updateGamePhysics() {
+            for (let i = 0; i < glasses.length; i++) {
+                const g = glasses[i];
+                if (g.userData.spawnAnimScale < 1.0) {
+                    g.userData.spawnAnimScale = Math.min(1.0, g.userData.spawnAnimScale + 0.12);
+                    g.scale.setScalar(g.userData.spawnAnimScale);
+                }
+            }
+
+            if (!isGameActive) return;
+
+            let anyMoved = false;
+
+            for (let i = 0; i < glasses.length; i++) {
+                const g = glasses[i];
+                if (g.userData.isWaitingToLaunch) continue;
+                if (g.userData.isShowcase) {
+                    g.userData.vx = 0;
+                    g.userData.vz = 0;
+                    continue;
+                }
+
+                const speed = Math.hypot(g.userData.vx, g.userData.vz);
+                if (speed > 0.0014) {
+                    anyMoved = true;
+                    g.position.x += g.userData.vx;
+                    g.position.z += g.userData.vz;
+
+                    // Dinamik kayma mekaniği: Yoldaki engellere (diğer bardaklar veya masa sonu) yaklaştıkça normal hıza pürüzsüz smoothstep yavaşlama
+                    let currentFriction = SURFACE_FRICTION;
+                    let extraDrag = SURFACE_DRAG_DECEL;
+
+                    if (g.userData.isLaunchedSlide) {
+                        // Bardak yoldayken kulvarındaki en yakın engeli (diğer bardaklar veya masanın son bandı) tespit et:
+                        let distToObstacle = (g.position.z - g.userData.radius) - PLAY_MIN_Z;
+                        const specG = GLASS_LEVELS[g.userData.level] || GLASS_LEVELS[1];
+                        for (let k = 0; k < glasses.length; k++) {
+                            const other = glasses[k];
+                            if (other === g || other.userData.isWaitingToLaunch) continue;
+                            if (other.position.z < g.position.z) {
+                                const specO = GLASS_LEVELS[other.userData.level] || GLASS_LEVELS[1];
+                                const contactH = Math.min(specG.height, specO.height);
+                                const effRG = getEffectiveContactRadius(specG, contactH);
+                                const effRO = getEffectiveContactRadius(specO, contactH);
+                                const combinedR = effRG + effRO;
+                                const latDiff = Math.abs(other.position.x - g.position.x);
+                                if (latDiff < combinedR + 0.08) {
+                                    const dAhead = (g.position.z - effRG) - (other.position.z + effRO);
+                                    if (dAhead >= 0 && dAhead < distToObstacle) {
+                                        distToObstacle = dAhead;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Önündeki bardağa veya masa sonuna yaklaştıkça normal hıza pürüzsüz frenleme:
+                        if (distToObstacle < 1.85) {
+                            const approachSpeed = 0.075;
+                            const t = Math.max(0, Math.min(1, 1 - distToObstacle / 1.85));
+                            const smoothT = t * t * (3 - 2 * t);
+                            currentFriction = 0.988 - smoothT * 0.065;
+                            extraDrag = 0.0001;
+                            // Karşı banda veya hedef bardağa varmadan önce erken durmaması için akıcı seyir hızını koru:
+                            if (speed < approachSpeed && distToObstacle > 0.02) {
+                                currentFriction = 1.0;
+                                extraDrag = 0;
+                            }
+                        }
+
+                        if (distToObstacle <= 0.025) {
+                            g.userData.isLaunchedSlide = false;
+                        }
+                    }
+
+                    const dampedSpeed = Math.max(0, speed * currentFriction - extraDrag);
+                    const ratio = dampedSpeed / speed;
+                    g.userData.vx *= ratio;
+                    g.userData.vz *= ratio;
+
+                    if (speed > 0.03 && Math.random() < 0.35) {
+                        const spec = GLASS_LEVELS[g.userData.level] || GLASS_LEVELS[1];
+                        spawnFrictionSlideTrail(g.position.x, g.position.z, g.userData.radius, spec.liquidColor);
+                    }
+
+                    const r = g.userData.radius;
+
+                    // Başlangıç çizgisine doğru geri gelen (vz > 0) bardaklar için kademeli yavaşlama ve durma:
+                    if (g.userData.vz > 0) {
+                        const distToLaunchLine = (LAUNCH_Z - r) - g.position.z;
+                        if (distToLaunchLine < 0.85 && distToLaunchLine > 0) {
+                            const brakeFactor = Math.max(0, Math.min(1, 1 - distToLaunchLine / 0.85));
+                            g.userData.vz *= (1 - brakeFactor * 0.28);
+                            g.userData.vx *= (1 - brakeFactor * 0.16);
+                        }
+                    }
+
+                    if (g.position.x - r < PLAY_MIN_X) {
+                        g.position.x = PLAY_MIN_X + r;
+                        g.userData.vx = Math.abs(g.userData.vx) * WALL_BOUNCE;
+                        g.userData.vz *= 0.96;
+                    } else if (g.position.x + r > PLAY_MAX_X) {
+                        g.position.x = PLAY_MAX_X - r;
+                        g.userData.vx = -Math.abs(g.userData.vx) * WALL_BOUNCE;
+                        g.userData.vz *= 0.96;
+                    }
+
+                    if (g.position.z - r < PLAY_MIN_Z) {
+                        g.position.z = PLAY_MIN_Z + r;
+                        g.userData.vz = Math.min(0.006, Math.abs(g.userData.vz) * 0.08);
+                        g.userData.vx *= 0.85;
+                        g.userData.isLaunchedSlide = false;
+                        playGameSound('clink', g.userData.level);
+                    } else if (g.userData.vz > 0 && g.position.z + r >= LAUNCH_Z) {
+                        // Masadaki bardaklar geri teptiğinde başlangıç çizgisinden geriye geçemez, çizgiye gelince durur:
+                        g.position.z = LAUNCH_Z - r;
+                        g.userData.vz = 0;
+                        g.userData.vx *= 0.82;
+                        g.userData.isLaunchedSlide = false;
+                    } else if (g.position.z + r > PLAY_MAX_Z) {
+                        g.position.z = PLAY_MAX_Z - r;
+                        g.userData.vz = -Math.abs(g.userData.vz) * WALL_BOUNCE;
+                        g.userData.vx *= 0.96;
+                        g.userData.isLaunchedSlide = false;
+                    }
+                } else {
+                    g.userData.vx = 0;
+                    g.userData.vz = 0;
+                }
+            }
+
+            // Bardakların Çarpışması ve Aynı Seviye Birleşmesi
+            const toRemove = new Set();
+            const toSpawn = [];
+
+            for (let i = 0; i < glasses.length; i++) {
+                const gA = glasses[i];
+                if (gA.userData.isWaitingToLaunch || toRemove.has(gA)) continue;
+
+                for (let j = i + 1; j < glasses.length; j++) {
+                    const gB = glasses[j];
+                    if (gB.userData.isWaitingToLaunch || toRemove.has(gB)) continue;
+
+                    // Vitrin test bardaklarının kendi arasında birbirini itmesini engelle
+                    if (gA.userData.isShowcase && gB.userData.isShowcase) continue;
+
+                    const dx = gB.position.x - gA.position.x;
+                    const dz = gB.position.z - gA.position.z;
+                    const dist = Math.hypot(dx, dz);
+
+                    const specA = GLASS_LEVELS[gA.userData.level] || GLASS_LEVELS[1];
+                    const specB = GLASS_LEVELS[gB.userData.level] || GLASS_LEVELS[1];
+                    const contactH = Math.min(specA.height, specB.height);
+                    const effRA = getEffectiveContactRadius(specA, contactH);
+                    const effRB = getEffectiveContactRadius(specB, contactH);
+                    const minDist = effRA + effRB;
+
+                    if (dist < minDist && dist > 0.0001) {
+                        anyMoved = true;
+
+                        if (gA.userData.level === gB.userData.level && gA.userData.level < 7) {
+                            toRemove.add(gA);
+                            toRemove.add(gB);
+
+                            const midX = (gA.position.x + gB.position.x) * 0.5;
+                            const midZ = (gA.position.z + gB.position.z) * 0.5;
+                            const currLvl = gA.userData.level;
+                            const nextLvl = currLvl + 1;
+
+                            toSpawn.push({
+                                level: nextLvl,
+                                x: midX,
+                                z: midZ,
+                                vx: (gA.userData.vx + gB.userData.vx) * MERGE_VELOCITY_CARRY,
+                                vz: (gA.userData.vz + gB.userData.vz) * MERGE_VELOCITY_CARRY
+                            });
+                            gameScore += nextLvl * 30;
+                            playGameSound('merge', nextLvl);
+                            totalMerges++;
+                            const spec = GLASS_LEVELS[currLvl] || GLASS_LEVELS[1];
+                            spawnMergeExplosion(midX, 0.25, midZ, spec.liquidColor, gA.userData.radius * 1.55);
+                            updateScoreHUD();
+                            triggerScorePlaqueBump();
+                            continue;
+                        }
+
+                        const nx = dx / dist;
+                        const nz = dz / dist;
+                        const overlap = minDist - dist;
+
+                        const totalMass = gA.userData.mass + gB.userData.mass;
+                        gA.position.x -= nx * overlap * (gB.userData.mass / totalMass);
+                        gA.position.z -= nz * overlap * (gB.userData.mass / totalMass);
+                        gB.position.x += nx * overlap * (gA.userData.mass / totalMass);
+                        gB.position.z += nz * overlap * (gA.userData.mass / totalMass);
+
+                        // Çarpışma itmesi sonrasında hiçbir bardağın masa kenarlıklarından dışarı taşmaması için anında sınır kilidi:
+                        const rA = gA.userData.radius;
+                        const rB = gB.userData.radius;
+                        gA.position.x = THREE.MathUtils.clamp(gA.position.x, PLAY_MIN_X + rA, PLAY_MAX_X - rA);
+                        gA.position.z = THREE.MathUtils.clamp(gA.position.z, PLAY_MIN_Z + rA, PLAY_MAX_Z - rA);
+                        gB.position.x = THREE.MathUtils.clamp(gB.position.x, PLAY_MIN_X + rB, PLAY_MAX_X - rB);
+                        gB.position.z = THREE.MathUtils.clamp(gB.position.z, PLAY_MIN_Z + rB, PLAY_MAX_Z - rB);
+
+                        const kx = gA.userData.vx - gB.userData.vx;
+                        const kz = gA.userData.vz - gB.userData.vz;
+                        const p = 2 * (nx * kx + nz * kz) / totalMass;
+
+                        if (p > 0) {
+                            gA.userData.isLaunchedSlide = false;
+                            gB.userData.isLaunchedSlide = false;
+                            gA.userData.vx = (gA.userData.vx - p * gB.userData.mass * nx * COLLISION_RESTITUTION) * POST_COLLISION_GRIP;
+                            gA.userData.vz = (gA.userData.vz - p * gB.userData.mass * nz * COLLISION_RESTITUTION) * POST_COLLISION_GRIP;
+                            gB.userData.vx = (gB.userData.vx + p * gA.userData.mass * nx * COLLISION_RESTITUTION) * POST_COLLISION_GRIP;
+                            gB.userData.vz = (gB.userData.vz + p * gA.userData.mass * nz * COLLISION_RESTITUTION) * POST_COLLISION_GRIP;
+
+                            if (Math.hypot(kx, kz) > 0.025) {
+                                playGameSound('clink', Math.max(gA.userData.level, gB.userData.level));
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (toRemove.size > 0) {
+                toRemove.forEach(rem => {
+                    scene.remove(rem);
+                    const idx = glasses.indexOf(rem);
+                    if (idx !== -1) glasses.splice(idx, 1);
+                });
+
+                toSpawn.forEach(sp => {
+                    const mergedGlass = buildGlassByLevel(sp.level);
+                    const r = mergedGlass.userData.radius;
+                    const clampedX = THREE.MathUtils.clamp(sp.x, PLAY_MIN_X + r, PLAY_MAX_X - r);
+                    const clampedZ = THREE.MathUtils.clamp(sp.z, PLAY_MIN_Z + r, LAUNCH_Z - r);
+                    mergedGlass.position.set(clampedX, 0, clampedZ);
+                    mergedGlass.userData.vx = sp.vx;
+                    mergedGlass.userData.vz = sp.vz;
+                    mergedGlass.userData.isLaunchedSlide = false;
+                    mergedGlass.userData.spawnAnimScale = 0.25;
+                    mergedGlass.scale.setScalar(0.25);
+                    scene.add(mergedGlass);
+                    glasses.push(mergedGlass);
+                });
+            }
+
+            if (anyMoved) {
+                updateCaustics();
+            }
+        }
+
+        // =========================================================================
+        // 9. DOKUNMATİK VE FARE ETKİLEŞİMLERİ (MASANIN HER NOKTASINDA KESİN ÇALIŞIR)
+        // =========================================================================
+        function computeAimXFromEvent(e, canvas) {
+            const rect = canvas.getBoundingClientRect();
+            mouseNDC.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            mouseNDC.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouseNDC, camera);
+            dragPlaneXZ.constant = 0;
+            if (raycaster.ray.intersectPlane(dragPlaneXZ, planeIntersectPoint)) {
+                return planeIntersectPoint.x;
+            }
+            return mouseNDC.x * (PLAY_MAX_X - PLAY_MIN_X) * 0.55;
+        }
+
+        function handleBlastTap(e, canvas) {
+            const rect = canvas.getBoundingClientRect();
+            mouseNDC.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            mouseNDC.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouseNDC, camera);
+            const candidates = glasses.filter(g => !g.userData.isWaitingToLaunch);
+            const intersects = raycaster.intersectObjects(candidates, true);
+
+            if (intersects.length > 0) {
+                let hitObj = intersects[0].object;
+                while (hitObj && !hitObj.userData.level && hitObj.parent && hitObj.parent !== scene) {
+                    hitObj = hitObj.parent;
+                }
+                if (hitObj && hitObj.userData && hitObj.userData.level) {
+                    blastGlass(hitObj);
+                }
+            }
+        }
+
+        function blastGlass(targetGlass) {
+            const lvl = targetGlass.userData.level;
+            const spec = GLASS_LEVELS[lvl] || GLASS_LEVELS[1];
+            spawnMergeExplosion(targetGlass.position.x, 0.35, targetGlass.position.z, spec.liquidColor, targetGlass.userData.radius * 1.8);
+            playGameSound('clink', lvl);
+
+            scene.remove(targetGlass);
+            const idx = glasses.indexOf(targetGlass);
+            if (idx !== -1) glasses.splice(idx, 1);
+
+            gameScore += lvl * 40;
+            updateScoreHUD();
+            triggerScorePlaqueBump();
+            updateCaustics();
+
+            remainingBlasts--;
+            const countText = document.getElementById('blast-count-text');
+            if (countText) countText.textContent = remainingBlasts;
+
+            if (remainingBlasts <= 0) {
+                exitBlastMode();
+                showToast('💥 3 Kupa Başarıyla Patlatıldı!');
+            }
+        }
+
+        function startBlastMode() {
+            isTargetBlastActive = true;
+            remainingBlasts = 3;
+            const banner = document.getElementById('blast-mode-banner');
+            const countText = document.getElementById('blast-count-text');
+            if (countText) countText.textContent = remainingBlasts;
+            if (banner) banner.classList.remove('hidden');
+            if (aimGuideGroup) aimGuideGroup.visible = false;
+            showToast('🎯 Patlatmak istediğin bardağa dokun (3 hakkın var)');
+        }
+
+        function cancelBlastMode(ev) {
+            stopEvt(ev);
+            exitBlastMode();
+            showToast('İptal edildi');
+        }
+
+        function exitBlastMode() {
+            isTargetBlastActive = false;
+            remainingBlasts = 0;
+            const banner = document.getElementById('blast-mode-banner');
+            if (banner) banner.classList.add('hidden');
+            if (aimGuideGroup) aimGuideGroup.visible = true;
+        }
+
+        function activateBooster(type, ev) {
+            stopEvt(ev);
+            if (!isGameActive || isGameOver) return;
+
+            if (type === 'blast') {
+                showRewardedAd(() => {
+                    startBlastMode();
+                });
+            } else if (type === 'shake') {
+                showRewardedAd(() => {
+                    triggerEarthquake();
+                });
+            } else if (type === 'magnet') {
+                showRewardedAd(() => {
+                    triggerMagneticMerge();
+                });
+            }
+        }
+
+        function triggerEarthquake() {
+            isEarthquakeActive = true;
+            earthquakeStartTime = performance.now();
+            earthquakeDuration = 1800;
+
+            if (soundEnabled && audioCtx) {
+                try {
+                    const now = audioCtx.currentTime;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(50, now);
+                    osc.frequency.linearRampToValueAtTime(30, now + 1.8);
+                    gain.gain.setValueAtTime(0.20, now);
+                    gain.gain.linearRampToValueAtTime(0.001, now + 1.8);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 1.85);
+                } catch(e) {}
+            }
+
+            glasses.forEach(g => {
+                if (!g.userData.isWaitingToLaunch) {
+                    g.userData.vx += (Math.random() - 0.5) * 0.22;
+                    g.userData.vz += (Math.random() - 0.5) * 0.22;
+                    g.userData.isLaunchedSlide = false;
+                }
+            });
+
+            showToast('🌋 Deprem! Masa güçlüce sallandı!');
+        }
+
+        function updateEarthquake() {
+            if (!isEarthquakeActive) return;
+            const elapsed = performance.now() - earthquakeStartTime;
+            if (elapsed < earthquakeDuration) {
+                const factor = 1 - elapsed / earthquakeDuration;
+                if (camera) {
+                    camera.position.x += (Math.random() - 0.5) * 0.12 * factor;
+                    camera.position.y += (Math.random() - 0.5) * 0.08 * factor;
+                    camera.position.z += (Math.random() - 0.5) * 0.12 * factor;
+                }
+                if (Math.random() < 0.15) {
+                    playGameSound('clink', Math.floor(Math.random() * 4) + 1);
+                }
+            } else {
+                isEarthquakeActive = false;
+                if (camera) updateCameraFromSpherical();
+            }
+        }
+
+        function triggerMagneticMerge() {
+            const available = glasses.filter(g => !g.userData.isWaitingToLaunch);
+            const byLevel = {};
+            available.forEach(g => {
+                const lvl = g.userData.level;
+                byLevel[lvl] = byLevel[lvl] || [];
+                byLevel[lvl].push(g);
+            });
+
+            let pairsAttracted = 0;
+            Object.keys(byLevel).forEach(lvlKey => {
+                const lvl = parseInt(lvlKey, 10);
+                if (lvl >= 7) return;
+                const list = byLevel[lvl];
+                while (list.length >= 2) {
+                    const cupA = list.shift();
+                    const cupB = list.shift();
+                    pairsAttracted++;
+
+                    const dx = cupB.position.x - cupA.position.x;
+                    const dz = cupB.position.z - cupA.position.z;
+                    const dist = Math.max(0.08, Math.hypot(dx, dz));
+                    const pullSpeed = 0.18;
+
+                    cupA.userData.vx += (dx / dist) * pullSpeed;
+                    cupA.userData.vz += (dz / dist) * pullSpeed;
+                    cupB.userData.vx -= (dx / dist) * pullSpeed;
+                    cupB.userData.vz -= (dz / dist) * pullSpeed;
+                    cupA.userData.isLaunchedSlide = false;
+                    cupB.userData.isLaunchedSlide = false;
+
+                    const midX = (cupA.position.x + cupB.position.x) * 0.5;
+                    const midZ = (cupA.position.z + cupB.position.z) * 0.5;
+                    spawnMergeExplosion(midX, 0.25, midZ, '#fde047', 0.55);
+                }
+            });
+
+            if (pairsAttracted > 0) {
+                playGameSound('merge', 3);
+                showToast('🧲 Manyetik Çekim! Eşleşen kupalar birbirine çekiliyor!');
+            } else {
+                available.forEach(g => {
+                    g.userData.vx += (0 - g.position.x) * 0.08;
+                    g.userData.vz += (-1.0 - g.position.z) * 0.08;
+                    g.userData.isLaunchedSlide = false;
+                });
+                playGameSound('clink', 4);
+                showToast('🧲 Manyetik Alan! Tüm bardaklar merkeze toplandı!');
+            }
+        }
+
+        function showRewardedAd(onReward) {
+            pendingAdReward = onReward;
+
+            const modal = document.getElementById('rewarded-ad-modal');
+            const timerText = document.getElementById('ad-timer-text');
+            const progressBar = document.getElementById('ad-progress-bar');
+            const claimBtn = document.getElementById('btn-ad-claim');
+
+            if (!modal) {
+                if (typeof onReward === 'function') onReward();
+                return;
+            }
+
+            modal.classList.remove('hidden');
+            if (claimBtn) {
+                claimBtn.classList.add('disabled');
+                claimBtn.textContent = 'Ödül Hazırlanıyor...';
+            }
+            if (progressBar) {
+                progressBar.style.transition = 'none';
+                progressBar.style.width = '0%';
+                void progressBar.offsetWidth;
+                progressBar.style.transition = 'width 3s linear';
+                progressBar.style.width = '100%';
+            }
+
+            let timeLeft = 3;
+            if (timerText) timerText.textContent = timeLeft + ' sn';
+
+            clearInterval(adTimerInterval);
+            adTimerInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft > 0) {
+                    if (timerText) timerText.textContent = timeLeft + ' sn';
+                } else {
+                    clearInterval(adTimerInterval);
+                    if (timerText) timerText.textContent = 'Hazır!';
+                    if (claimBtn) {
+                        claimBtn.classList.remove('disabled');
+                        claimBtn.textContent = '✨ ÖDÜLÜ AL & DEVAM ET';
+                    }
+                    setTimeout(() => {
+                        claimAdReward();
+                    }, 450);
+                }
+            }, 1000);
+        }
+
+        function claimAdReward(ev) {
+            stopEvt(ev);
+            const claimBtn = document.getElementById('btn-ad-claim');
+            if (claimBtn && claimBtn.classList.contains('disabled')) return;
+
+            const modal = document.getElementById('rewarded-ad-modal');
+            if (modal) modal.classList.add('hidden');
+            clearInterval(adTimerInterval);
+
+            if (typeof pendingAdReward === 'function') {
+                const rewardFn = pendingAdReward;
+                pendingAdReward = null;
+                rewardFn();
+            }
+        }
+
+        function checkTableFullCondition() {
+            if (!isGameActive || isGameOver) return;
+
+            for (let i = 0; i < glasses.length; i++) {
+                const g = glasses[i];
+                if (g.userData.isWaitingToLaunch) continue;
+
+                // Yeni fırlatılan bardağın masanın içine doğru ilk kayış süresi (0.35s) hariç
+                if (g.userData.launchGraceTime > 0) {
+                    g.userData.launchGraceTime -= 1 / 60;
+                    continue;
+                }
+
+                const r = g.userData.radius;
+                // Masadaki herhangi bir bardak (1 bardak dahi olsa) sınır çizgisini geçtiği an oyun biter:
+                if (g.position.z + r >= LAUNCH_Z) {
+                    triggerGameOver();
+                    return;
+                }
+            }
+        }
+
+        function triggerGameOver() {
+            if (isGameOver) return;
+            isGameOver = true;
+            isGameActive = false;
+            tableFullWarningTimer = 0;
+
+            exitBlastMode();
+
+            if (soundEnabled && audioCtx) {
+                try {
+                    const now = audioCtx.currentTime;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(420, now);
+                    osc.frequency.exponentialRampToValueAtTime(110, now + 0.65);
+                    gain.gain.setValueAtTime(0.18, now);
+                    gain.gain.linearRampToValueAtTime(0.001, now + 0.65);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.7);
+                } catch(e) {}
+            }
+
+            const scoreEl = document.getElementById('game-over-score-val');
+            if (scoreEl) scoreEl.textContent = gameScore.toLocaleString('tr-TR');
+
+            const modal = document.getElementById('game-over-modal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function startReviveRewardedAd(ev) {
+            stopEvt(ev);
+            ensureAudioContext();
+
+            // Game over modalını hemen kapatıp reklam modalının öne geçmesini sağla
+            const gameOverModal = document.getElementById('game-over-modal');
+            if (gameOverModal) gameOverModal.classList.add('hidden');
+
+            showRewardedAd(() => {
+                clearSeventhLevelCupsAndResume();
+            });
+        }
+
+        function clearSeventhLevelCupsAndResume() {
+            const sevens = glasses.filter(g => !g.userData.isWaitingToLaunch && g.userData.level === 7);
+            let removedCount = 0;
+
+            if (sevens.length > 0) {
+                sevens.forEach(g => {
+                    spawnMergeExplosion(g.position.x, 0.45, g.position.z, '#a855f7', 1.25);
+                    scene.remove(g);
+                    const idx = glasses.indexOf(g);
+                    if (idx !== -1) glasses.splice(idx, 1);
+                    removedCount++;
+                });
+                gameScore += removedCount * 350;
+            } else {
+                const sorted = glasses
+                    .filter(g => !g.userData.isWaitingToLaunch)
+                    .sort((a, b) => b.userData.level - a.userData.level);
+                const toClear = sorted.slice(0, 4);
+                toClear.forEach(g => {
+                    spawnMergeExplosion(g.position.x, 0.4, g.position.z, '#fde047', 1.0);
+                    scene.remove(g);
+                    const idx = glasses.indexOf(g);
+                    if (idx !== -1) glasses.splice(idx, 1);
+                    removedCount++;
+                });
+                gameScore += removedCount * 200;
+            }
+
+            // Çizgiye yakın kalan bardakları güvenli mesafeye kaydır
+            glasses.forEach(g => {
+                if (!g.userData.isWaitingToLaunch) {
+                    const r = g.userData.radius;
+                    if (g.position.z + r > LAUNCH_Z - 0.45) {
+                        g.position.z = LAUNCH_Z - r - 0.45;
+                        g.userData.vz = -0.06;
+                        g.userData.vx = 0;
+                    }
+                }
+            });
+
+            updateScoreHUD();
+            updateCaustics();
+
+            const modal = document.getElementById('game-over-modal');
+            if (modal) modal.classList.add('hidden');
+
+            isGameOver = false;
+            isGameActive = true;
+            tableFullWarningTimer = 0;
+
+            if (!waitingGlass || !waitingGlass.userData.isWaitingToLaunch) {
+                spawnWaitingGlassAtShortEdge();
+            }
+
+            playGameSound('merge', 7);
+            showToast('✨ 7. Seviye Kadehler Masadan Temizlendi! Bol Şans!');
+        }
+
+        function initEventListeners() {
+            const canvas = document.getElementById('webgl-canvas');
+            canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+            let isPointerAiming = false;
+
+            canvas.addEventListener('pointerdown', (e) => {
+                if (!isGameActive) return;
+                if (e.button !== undefined && e.button !== 0) return;
+
+                if (isTargetBlastActive) {
+                    handleBlastTap(e, canvas);
+                    return;
+                }
+
+                isPointerAiming = true;
+                const aimX = computeAimXFromEvent(e, canvas);
+                updateStraightAimGuide(aimX);
+            });
+
+            window.addEventListener('pointermove', (e) => {
+                if (!isGameActive || isTargetBlastActive) return;
+                const aimX = computeAimXFromEvent(e, canvas);
+                updateStraightAimGuide(aimX);
+            });
+
+            window.addEventListener('pointerup', (e) => {
+                if (isTargetBlastActive) return;
+                if (!isPointerAiming) return;
+                isPointerAiming = false;
+                if (!isGameActive) return;
+                const aimX = computeAimXFromEvent(e, canvas);
+                launchWaitingGlassStraightAtX(aimX);
+            });
+
+            window.addEventListener('resize', () => {
+                const dims = getStageDimensions();
+                if (renderer) renderer.setSize(dims.width, dims.height);
+                updateResponsiveTerraceLayout();
+                if (camera) updateCameraFromSpherical();
+            });
+
+            const reviveBtn = document.getElementById('btn-revive-ad');
+            if (reviveBtn) {
+                reviveBtn.addEventListener('click', (e) => startReviveRewardedAd(e));
+            }
+            const claimBtn = document.getElementById('btn-ad-claim');
+            if (claimBtn) {
+                claimBtn.addEventListener('click', (e) => claimAdReward(e));
+            }
+        }
+
+        // =========================================================================
+        // 10. ANA OYUN DÖNGÜSÜ
+        // =========================================================================
+        function animate() {
+            requestAnimationFrame(animate);
+            updateGamePhysics();
+            updateExplosionEffects();
+            updateFrictionTrailEffects();
+            updateEarthquake();
+            checkTableFullCondition();
+            renderer.render(scene, camera);
+        }
+
+        window.onload = function () {
+            loadSavedPreferences();
+            initScene();
+            initEventListeners();
+            animate();
+        };
+    </script>
+</body>
+
+</html>
