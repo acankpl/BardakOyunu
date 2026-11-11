@@ -7,7 +7,7 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta http-equiv="Content-Security-Policy"
         content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self' data: blob:; media-src 'self' data: blob:;">
-    <meta name="theme-color" content="#0b3b3c">
+    <meta name="theme-color" content="#e5cdb4">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Akdeniz Bardak">
@@ -37,13 +37,18 @@
         html,
         body {
             position: fixed;
-            inset: 0;
-            width: 100%;
-            height: 100%;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            min-height: 100%;
             overflow: hidden;
             overscroll-behavior: none;
             -webkit-overflow-scrolling: auto;
-            background-color: #162a2a;
+            background-color: #e5cdb4;
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
             color: #fff8eb;
             touch-action: none;
@@ -64,22 +69,28 @@
         }
 
         #portrait-stage-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            min-height: 100%;
+            overflow: hidden;
+            background-color: #e5cdb4;
+        }
+
+        /* Genişletilmiş Akdeniz Bahçesi Terası Oyun Arka Planı (Tüm ekranı %100 kusursuz ve boşluksuz örter) */
+        #terrace-bg-img,
+        #splash-bg-img {
             position: absolute;
             inset: 0;
             width: 100%;
             height: 100%;
-            overflow: hidden;
-            background: #1b3636;
-        }
-
-        /* Genişletilmiş Akdeniz Bahçesi Terası Oyun Arka Planı */
-        #terrace-bg-img {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            max-width: none;
-            max-height: none;
+            object-fit: cover;
+            object-position: center bottom;
             pointer-events: none;
             z-index: 1;
         }
@@ -247,20 +258,8 @@
             position: fixed;
             inset: 0;
             z-index: 50;
-            background-color: #1b3636;
+            background-color: #e5cdb4;
             overflow: hidden;
-        }
-
-        /* Genişletilmiş (1254x1254) Başlangıç Ekranı Görseli: Oyun arka planı ile aynı bleed mantığında çalışır */
-        #splash-bg-img {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            max-width: none;
-            max-height: none;
-            pointer-events: none;
-            z-index: 1;
         }
 
         /* Merkezi 9:16 güvenli alan çerçevesi: Butonları 3 kupalı kaidenin tam altına hizalar */
@@ -1676,20 +1675,7 @@
         // =========================================================================
         // 5. GENİŞLETİLMİŞ ARKA PLAN BLEED ÖLÇEKLEME & MASA PERSPEKTİF HİZALAMA
         // =========================================================================
-        function syncMobileViewportSize() {
-            const h = window.innerHeight;
-            const w = window.innerWidth;
-            document.documentElement.style.height = `${h}px`;
-            document.body.style.height = `${h}px`;
-            const wrapper = document.getElementById('portrait-stage-wrapper');
-            if (wrapper) {
-                wrapper.style.height = `${h}px`;
-                wrapper.style.width = `${w}px`;
-            }
-        }
-
         function getStageDimensions() {
-            syncMobileViewportSize();
             const wrapper = document.getElementById('portrait-stage-wrapper');
             if (wrapper) {
                 const rect = wrapper.getBoundingClientRect();
@@ -1703,32 +1689,13 @@
             };
         }
 
-        // Hem oyun arka planını hem de yeni genişletilmiş başlangıç ekranı arka planını aynı bleed mantığıyla ölçekler
+        // Hem oyun arka planını hem de başlangıç ekranı güvenli alanını orantılar
         function updateResponsiveTerraceLayout() {
-            syncMobileViewportSize();
             const dims = getStageDimensions();
             const W = dims.width;
             const H = dims.height;
 
             const safeScale = Math.min(W / CORE_SAFE_W, H / CORE_SAFE_H);
-            // Mobil tarayıcılarda adres çubuğu açılıp kapansa dahi en altta ve yanlarda tek piksel bile boşluk kalmaması için bleed payı:
-            const coverScale = Math.max(W / EXPANDED_IMG_W, H / EXPANDED_IMG_H) * 1.24;
-            const bgScale = Math.max(safeScale, coverScale);
-
-            const renderW = Math.ceil(EXPANDED_IMG_W * bgScale);
-            const renderH = Math.ceil(EXPANDED_IMG_H * bgScale);
-            const isLandscapeWide = (W / H) > 1.15;
-            const anchorY = isLandscapeWide ? 57 : 50;
-
-            ['terrace-bg-img', 'splash-bg-img'].forEach(id => {
-                const img = document.getElementById(id);
-                if (!img) return;
-                img.style.width = `${renderW}px`;
-                img.style.height = `${renderH}px`;
-                img.style.left = '50%';
-                img.style.top = `${anchorY}%`;
-                img.style.transform = `translate(-50%, -${anchorY}%)`;
-            });
 
             // Başlangıç ekranındaki butonların yer aldığı merkezi 9:16 güvenli çerçeveyi kaidenin tam altına oturtur
             const splashFrame = document.getElementById('splash-safe-frame');
@@ -1894,26 +1861,18 @@
             const H = dims.height;
             const aspect = W / H;
 
+            // Ekran ne kadar daralırsa daralsın masanın yanlarının ve altının asla ekrandan taşmamasını sağlayan orantı
             let responsiveDist;
-            const currentTarget = camState.target.clone();
-
             if (aspect < 0.5625) {
-                // Dar mobil ekranlar (iPhone, Android 19:9, 20:9):
-                // Masayı alt güçlendirici butonların hemen üstüne tam oturtur,
-                // ekranda hiçbir ölü boşluk bırakmadan alanı lüks ve orantılı doldurur.
-                responsiveDist = 12.6 * (0.5625 / Math.max(0.34, aspect)) * 0.82;
-                currentTarget.y = -0.92;
-                currentTarget.z = -0.55;
+                // Dar mobil ekranlar (9:16, 9:19.5, 9:20): Masanın altı alttaki güçlendirici butonların üstünden başlar,
+                // masanın üstü de skor tablosunun altına asla girmez.
+                responsiveDist = 12.6 * (0.5625 / Math.max(0.32, aspect)) * 0.92;
             } else if (aspect < 1.0) {
                 // Tablet ve kareye yakın dikey ekranlar
                 responsiveDist = 11.6 - (aspect - 0.5625) * 1.5;
-                currentTarget.y = -0.78;
-                currentTarget.z = 0.15;
             } else {
                 // Yatay ekranlar
                 responsiveDist = 11.0;
-                currentTarget.y = -0.75;
-                currentTarget.z = 0.62;
             }
 
             const sinP = Math.sin(camState.polar);
@@ -1921,14 +1880,14 @@
             const sinA = Math.sin(camState.azimuth);
             const cosA = Math.cos(camState.azimuth);
 
-            camera.position.x = currentTarget.x + responsiveDist * sinP * sinA;
-            camera.position.y = currentTarget.y + responsiveDist * cosP;
-            camera.position.z = currentTarget.z + responsiveDist * sinP * cosA;
+            camera.position.x = camState.target.x + responsiveDist * sinP * sinA;
+            camera.position.y = camState.target.y + responsiveDist * cosP;
+            camera.position.z = camState.target.z + responsiveDist * sinP * cosA;
 
             camera.fov = camState.fov;
             camera.aspect = W / H;
             camera.updateProjectionMatrix();
-            camera.lookAt(currentTarget);
+            camera.lookAt(camState.target);
         }
 
         function createTableShadowTexture() {
@@ -3384,7 +3343,6 @@
             });
 
             const onViewportChange = () => {
-                syncMobileViewportSize();
                 const dims = getStageDimensions();
                 if (renderer) renderer.setSize(dims.width, dims.height);
                 updateResponsiveTerraceLayout();
@@ -3424,7 +3382,6 @@
         }
 
         window.onload = function () {
-            syncMobileViewportSize();
             loadSavedPreferences();
             initScene();
             initEventListeners();
