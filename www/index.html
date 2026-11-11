@@ -7,7 +7,7 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta http-equiv="Content-Security-Policy"
         content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self' data: blob:; media-src 'self' data: blob:;">
-    <meta name="theme-color" content="#e5cdb4">
+    <meta name="theme-color" content="#123838">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Akdeniz Bardak">
@@ -34,21 +34,27 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        html,
+        html {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #123838;
+        }
+
         body {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            width: 100vw;
-            height: 100vh;
-            height: 100dvh;
-            min-height: 100%;
+            width: 100%;
+            height: 100%;
             overflow: hidden;
             overscroll-behavior: none;
             -webkit-overflow-scrolling: auto;
-            background-color: #e5cdb4;
+            background-color: #123838;
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
             color: #fff8eb;
             touch-action: none;
@@ -69,21 +75,18 @@
         }
 
         #portrait-stage-wrapper {
-            position: fixed;
+            position: absolute;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            width: 100vw;
-            height: 100vh;
-            height: 100dvh;
-            min-height: 100%;
+            width: 100%;
+            height: 100%;
             overflow: hidden;
-            background-color: #e5cdb4;
+            background-color: #123838;
         }
 
-        /* Genişletilmiş Akdeniz Bahçesi Terası Oyun Arka Planı (Tüm ekranı %100 kusursuz ve boşluksuz örter) */
-        #terrace-bg-img,
+        /* Başlangıç Ekranı Görseli */
         #splash-bg-img {
             position: absolute;
             inset: 0;
@@ -111,7 +114,7 @@
         /* ===================================================================== */
         #top-game-hud {
             position: absolute;
-            top: max(16px, calc(env(safe-area-inset-top, 0px) + 14px));
+            top: max(8px, calc(env(safe-area-inset-top, 0px) + 6px));
             left: 0;
             right: 0;
             z-index: 25;
@@ -258,7 +261,7 @@
             position: fixed;
             inset: 0;
             z-index: 50;
-            background-color: #e5cdb4;
+            background-color: #123838;
             overflow: hidden;
         }
 
@@ -986,9 +989,6 @@
 
 <body>
     <div id="portrait-stage-wrapper">
-        <!-- 1. Genişletilmiş Akdeniz Bahçesi Terası Oyun Arka Plan Görseli -->
-        <img id="terrace-bg-img" src="Genişletilmiş Akdeniz bahçesi terası.png" alt="Akdeniz Bahçesi Terası">
-
         <!-- 2. 3B Masa (.glb) ve Bardaklar Fizik Sahnesi Canvas -->
         <canvas id="webgl-canvas"></canvas>
 
@@ -1565,12 +1565,12 @@
         let adTimerInterval = null;
         let pendingAdReward = null;
 
-        // 3B Masanın alt reklam butonlarının kesinlikle üstünde kalmasını sağlayan kamera açısı
+        // 3B Masanın alt reklam butonlarının hemen üstünde ve skor alanından güvenli mesafede durmasını sağlayan kamera açısı
         const camState = {
-            target: new THREE.Vector3(0, -0.75, 0.62),
+            target: new THREE.Vector3(0, -0.80, 0.00),
             distance: 13.5,
             azimuth: 0,
-            polar: 49 * (Math.PI / 180),
+            polar: 51 * (Math.PI / 180),
             fov: 41
         };
 
@@ -1836,15 +1836,22 @@
         // =========================================================================
         function getStageDimensions() {
             const wrapper = document.getElementById('portrait-stage-wrapper');
+            let w = window.innerWidth;
+            let h = window.innerHeight;
             if (wrapper) {
                 const rect = wrapper.getBoundingClientRect();
                 if (rect.width > 0 && rect.height > 0) {
-                    return { width: rect.width, height: rect.height };
+                    w = rect.width;
+                    h = rect.height;
                 }
             }
+            // iOS standalone (Ana Ekrana Ekle) modunda çentik ve alt bar dahil tüm ekranı garantile:
+            if (window.navigator && window.navigator.standalone && window.screen && window.screen.height) {
+                h = Math.max(h, window.screen.height);
+            }
             return {
-                width: Math.max(1, window.innerWidth),
-                height: Math.max(1, window.innerHeight)
+                width: Math.round(w),
+                height: Math.round(h)
             };
         }
 
@@ -2020,18 +2027,23 @@
             const H = dims.height;
             const aspect = W / H;
 
-            // Ekran ne kadar daralırsa daralsın masanın yanlarının ve altının asla ekrandan taşmamasını sağlayan orantı
             let responsiveDist;
+            const currentTarget = camState.target.clone();
+
             if (aspect < 0.5625) {
-                // Dar mobil ekranlar (9:16, 9:19.5, 9:20): Masanın altı alttaki güçlendirici butonların üstünden başlar,
-                // masanın üstü de skor tablosunun altına asla girmez.
-                responsiveDist = 12.6 * (0.5625 / Math.max(0.32, aspect)) * 0.92;
+                // Dar mobil ekranlar (iPhone, Android 19:9, 20:9):
+                // Masayı alt güçlendirici butonların hemen üstüne rahat nefes payıyla yaklaştırır,
+                // masanın üst tarafındaki bardakların (7. seviye şampiyon kadeh dahil) skor panosunun arkasında kalmasını kesinlikle engeller.
+                responsiveDist = 12.6 * (0.5625 / Math.max(0.32, aspect)) * 0.90;
+                currentTarget.set(0, -0.80, 0.00);
             } else if (aspect < 1.0) {
                 // Tablet ve kareye yakın dikey ekranlar
                 responsiveDist = 11.6 - (aspect - 0.5625) * 1.5;
+                currentTarget.set(0, -0.78, 0.15);
             } else {
                 // Yatay ekranlar
                 responsiveDist = 11.0;
+                currentTarget.set(0, -0.75, 0.62);
             }
 
             const sinP = Math.sin(camState.polar);
@@ -2039,14 +2051,14 @@
             const sinA = Math.sin(camState.azimuth);
             const cosA = Math.cos(camState.azimuth);
 
-            camera.position.x = camState.target.x + responsiveDist * sinP * sinA;
-            camera.position.y = camState.target.y + responsiveDist * cosP;
-            camera.position.z = camState.target.z + responsiveDist * sinP * cosA;
+            camera.position.x = currentTarget.x + responsiveDist * sinP * sinA;
+            camera.position.y = currentTarget.y + responsiveDist * cosP;
+            camera.position.z = currentTarget.z + responsiveDist * sinP * cosA;
 
             camera.fov = camState.fov;
             camera.aspect = W / H;
             camera.updateProjectionMatrix();
-            camera.lookAt(camState.target);
+            camera.lookAt(currentTarget);
         }
 
         function createTableShadowTexture() {
@@ -2057,9 +2069,10 @@
             ctx.save();
             ctx.scale(1, 2);
             const grad = ctx.createRadialGradient(128, 128, 28, 128, 128, 120);
-            grad.addColorStop(0, 'rgba(38, 24, 10, 0.45)');
-            grad.addColorStop(0.65, 'rgba(38, 24, 10, 0.22)');
-            grad.addColorStop(1, 'rgba(38, 24, 10, 0)');
+            grad.addColorStop(0, 'rgba(0, 8, 8, 0.65)');
+            grad.addColorStop(0.55, 'rgba(0, 8, 8, 0.35)');
+            grad.addColorStop(0.85, 'rgba(0, 8, 8, 0.12)');
+            grad.addColorStop(1, 'rgba(0, 8, 8, 0)');
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, 256, 256);
             ctx.restore();
