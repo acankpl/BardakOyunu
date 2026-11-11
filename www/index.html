@@ -1280,10 +1280,22 @@
                 name: 'Seviye 3: Adaçayı Yeşili Kulplu Kupa',
                 shortName: '3. Kulplu',
                 height: 0.62,
-                baseRadius: 0.240,
-                topRadius: 0.315,
-                radius: 0.315,
+                baseRadius: 0.250,
+                topRadius: 0.330,
+                radius: 0.330,
                 hasHandle: true,
+                rawBodyCenterX: -0.118,
+                // Yalnızca sağdaki (+X) kulp fiziksel engel sayılır.
+                // Kulp zemin seviyesinden (minY: 0.16) yukarıda başlar.
+                handles: [
+                    {
+                        offsetX: 0.42,
+                        offsetZ: 0.0,
+                        radius: 0.115,
+                        minY: 0.16,
+                        maxY: 0.60
+                    }
+                ],
                 mass: 2.3,
                 liquidColor: 0x65a30d
             },
@@ -1296,10 +1308,29 @@
                 name: 'Seviye 4: Altın Zeytin Yapraklı Fildişi Kupa',
                 shortName: '4. Fildişi',
                 height: 0.76,
-                baseRadius: 0.240,
-                topRadius: 0.365,
-                radius: 0.365,
+                baseRadius: 0.250,
+                topRadius: 0.370,
+                radius: 0.370,
                 hasHandle: true,
+                rawBodyCenterX: 0.0,
+                // Yalnızca sol (-X) ve sağ (+X) kulplar fiziksel engel sayılır.
+                // Kulplar kupanın üst yarısında başlar (minY: 0.44), kulpun altındaki alanda kısa bardaklar serbestçe gövdeye yanaşır.
+                handles: [
+                    {
+                        offsetX: -0.42,
+                        offsetZ: 0.0,
+                        radius: 0.105,
+                        minY: 0.44,
+                        maxY: 0.76
+                    },
+                    {
+                        offsetX: 0.42,
+                        offsetZ: 0.0,
+                        radius: 0.105,
+                        minY: 0.44,
+                        maxY: 0.76
+                    }
+                ],
                 mass: 3.0,
                 liquidColor: 0xf59e0b
             },
@@ -1357,6 +1388,134 @@
             const h = spec.height || 0.8;
             const t = Math.max(0, Math.min(1, contactHeight / h));
             return THREE.MathUtils.lerp(baseR, topR, t);
+        }
+
+        // Bardağın masanın yan bantlarıyla sınır kontrolü için gerçek X ve Z uzanım sınırları
+        function getCupBoundReach(spec) {
+            let minX = -spec.radius;
+            let maxX = spec.radius;
+            if (spec.handles) {
+                spec.handles.forEach(h => {
+                    minX = Math.min(minX, h.offsetX - h.radius);
+                    maxX = Math.max(maxX, h.offsetX + h.radius);
+                });
+            }
+            return { minX, maxX, rZ: spec.radius };
+        }
+
+        // Kulplu ve yuvarlak bardaklar arasında yön ve yükseklik duyarlı fiziksel çarpışma kontrolü:
+        // - Yeşil bardakta yalnızca sağ kulp (+X), beyaz bardakta yalnızca sol (-X) ve sağ (+X) kulp engel sayılır.
+        // - Ön (+Z) ve arkada (-Z), yeşilin solunda (-X) ve kulpların altındaki alanda yalnızca seramik gövde sınır kabul edilir.
+        function checkCupsCollision(gA, specA, gB, specB) {
+            const contactH = Math.min(specA.height, specB.height);
+            const effRA = getEffectiveContactRadius(specA, contactH);
+            const effRB = getEffectiveContactRadius(specB, contactH);
+
+            let maxOverlap = -1;
+            let colNx = 0;
+            let colNz = 0;
+            let isColliding = false;
+
+            // 1. Ana Seramik Gövde - Gövde Teması (Tüm bardaklarda silindirik gövde mevcuttur)
+            const bdx = gB.position.x - gA.position.x;
+            const bdz = gB.position.z - gA.position.z;
+            const bdist = Math.hypot(bdx, bdz);
+            const bMinDist = effRA + effRB;
+
+            if (bdist < bMinDist && bdist > 0.0001) {
+                const overlap = bMinDist - bdist;
+                if (overlap > maxOverlap) {
+                    maxOverlap = overlap;
+                    colNx = bdx / bdist;
+                    colNz = bdz / bdist;
+                    isColliding = true;
+                }
+            }
+
+            // 2. A Bardağının Kulpu - B Bardağının Gövdesi
+            // (Yalnızca B bardağının boyu kulpun başladığı yüksekliğe ulaşıyorsa çarpar; kulpun altında kalan kısa bardaklar serbestçe gövdeye yanaşır)
+            if (specA.handles) {
+                for (let k = 0; k < specA.handles.length; k++) {
+                    const hA = specA.handles[k];
+                    if (specB.height >= hA.minY) {
+                        const hx = gA.position.x + hA.offsetX;
+                        const hz = gA.position.z + hA.offsetZ;
+                        const dx = gB.position.x - hx;
+                        const dz = gB.position.z - hz;
+                        const d = Math.hypot(dx, dz);
+                        const minD = hA.radius + effRB;
+                        if (d < minD && d > 0.0001) {
+                            const overlap = minD - d;
+                            if (overlap > maxOverlap) {
+                                maxOverlap = overlap;
+                                colNx = dx / d;
+                                colNz = dz / d;
+                                isColliding = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. B Bardağının Kulpu - A Bardağının Gövdesi
+            if (specB.handles) {
+                for (let k = 0; k < specB.handles.length; k++) {
+                    const hB = specB.handles[k];
+                    if (specA.height >= hB.minY) {
+                        const hx = gB.position.x + hB.offsetX;
+                        const hz = gB.position.z + hB.offsetZ;
+                        const dx = hx - gA.position.x;
+                        const dz = hz - gA.position.z;
+                        const d = Math.hypot(dx, dz);
+                        const minD = effRA + hB.radius;
+                        if (d < minD && d > 0.0001) {
+                            const overlap = minD - d;
+                            if (overlap > maxOverlap) {
+                                maxOverlap = overlap;
+                                colNx = dx / d;
+                                colNz = dz / d;
+                                isColliding = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 4. Kulp - Kulp Teması (Her iki bardakta da kulp varsa)
+            if (specA.handles && specB.handles) {
+                for (let ka = 0; ka < specA.handles.length; ka++) {
+                    const hA = specA.handles[ka];
+                    for (let kb = 0; kb < specB.handles.length; kb++) {
+                        const hB = specB.handles[kb];
+                        if (specA.height >= hB.minY && specB.height >= hA.minY) {
+                            const hax = gA.position.x + hA.offsetX;
+                            const haz = gA.position.z + hA.offsetZ;
+                            const hbx = gB.position.x + hB.offsetX;
+                            const hbz = gB.position.z + hB.offsetZ;
+                            const dx = hbx - hax;
+                            const dz = hbz - haz;
+                            const d = Math.hypot(dx, dz);
+                            const minD = hA.radius + hB.radius;
+                            if (d < minD && d > 0.0001) {
+                                const overlap = minD - d;
+                                if (overlap > maxOverlap) {
+                                    maxOverlap = overlap;
+                                    colNx = dx / d;
+                                    colNz = dz / d;
+                                    isColliding = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!isColliding) return null;
+            return {
+                overlap: maxOverlap,
+                nx: colNx,
+                nz: colNz
+            };
         }
 
         const STORAGE_KEYS = {
@@ -2102,8 +2261,9 @@
             const newBox = new THREE.Box3().setFromObject(model);
             const wrapper = new THREE.Group();
             if (spec.hasHandle) {
-                // Kulplu bardaklarda seramik silindir gövdenin merkezini fizik dairesinin tam ortasına oturt:
-                model.position.x = 0;
+                // Kulplu bardaklarda seramik silindir gövdenin merkezini (0,0) noktasına tam oturt:
+                const bodyOffsetX = (spec.rawBodyCenterX || 0.0) * scale;
+                model.position.x = -bodyOffsetX;
                 model.position.z -= (newBox.min.z + newBox.max.z) / 2;
             } else {
                 model.position.x -= (newBox.min.x + newBox.max.x) / 2;
@@ -2691,12 +2851,15 @@
                         }
                     }
 
-                    if (g.position.x - r < PLAY_MIN_X) {
-                        g.position.x = PLAY_MIN_X + r;
+                    const specThis = GLASS_LEVELS[g.userData.level] || GLASS_LEVELS[1];
+                    const bThis = getCupBoundReach(specThis);
+
+                    if (g.position.x + bThis.minX < PLAY_MIN_X) {
+                        g.position.x = PLAY_MIN_X - bThis.minX;
                         g.userData.vx = Math.abs(g.userData.vx) * WALL_BOUNCE;
                         g.userData.vz *= 0.96;
-                    } else if (g.position.x + r > PLAY_MAX_X) {
-                        g.position.x = PLAY_MAX_X - r;
+                    } else if (g.position.x + bThis.maxX > PLAY_MAX_X) {
+                        g.position.x = PLAY_MAX_X - bThis.maxX;
                         g.userData.vx = -Math.abs(g.userData.vx) * WALL_BOUNCE;
                         g.userData.vz *= 0.96;
                     }
@@ -2740,18 +2903,11 @@
                     // Vitrin test bardaklarının kendi arasında birbirini itmesini engelle
                     if (gA.userData.isShowcase && gB.userData.isShowcase) continue;
 
-                    const dx = gB.position.x - gA.position.x;
-                    const dz = gB.position.z - gA.position.z;
-                    const dist = Math.hypot(dx, dz);
-
                     const specA = GLASS_LEVELS[gA.userData.level] || GLASS_LEVELS[1];
                     const specB = GLASS_LEVELS[gB.userData.level] || GLASS_LEVELS[1];
-                    const contactH = Math.min(specA.height, specB.height);
-                    const effRA = getEffectiveContactRadius(specA, contactH);
-                    const effRB = getEffectiveContactRadius(specB, contactH);
-                    const minDist = effRA + effRB;
+                    const col = checkCupsCollision(gA, specA, gB, specB);
 
-                    if (dist < minDist && dist > 0.0001) {
+                    if (col) {
                         anyMoved = true;
 
                         if (gA.userData.level === gB.userData.level && gA.userData.level < 7) {
@@ -2780,9 +2936,9 @@
                             continue;
                         }
 
-                        const nx = dx / dist;
-                        const nz = dz / dist;
-                        const overlap = minDist - dist;
+                        const nx = col.nx;
+                        const nz = col.nz;
+                        const overlap = col.overlap;
 
                         const totalMass = gA.userData.mass + gB.userData.mass;
                         gA.position.x -= nx * overlap * (gB.userData.mass / totalMass);
@@ -2791,12 +2947,12 @@
                         gB.position.z += nz * overlap * (gA.userData.mass / totalMass);
 
                         // Çarpışma itmesi sonrasında hiçbir bardağın masa kenarlıklarından dışarı taşmaması için anında sınır kilidi:
-                        const rA = gA.userData.radius;
-                        const rB = gB.userData.radius;
-                        gA.position.x = THREE.MathUtils.clamp(gA.position.x, PLAY_MIN_X + rA, PLAY_MAX_X - rA);
-                        gA.position.z = THREE.MathUtils.clamp(gA.position.z, PLAY_MIN_Z + rA, PLAY_MAX_Z - rA);
-                        gB.position.x = THREE.MathUtils.clamp(gB.position.x, PLAY_MIN_X + rB, PLAY_MAX_X - rB);
-                        gB.position.z = THREE.MathUtils.clamp(gB.position.z, PLAY_MIN_Z + rB, PLAY_MAX_Z - rB);
+                        const bA = getCupBoundReach(specA);
+                        const bB = getCupBoundReach(specB);
+                        gA.position.x = THREE.MathUtils.clamp(gA.position.x, PLAY_MIN_X - bA.minX, PLAY_MAX_X - bA.maxX);
+                        gA.position.z = THREE.MathUtils.clamp(gA.position.z, PLAY_MIN_Z + bA.rZ, PLAY_MAX_Z - bA.rZ);
+                        gB.position.x = THREE.MathUtils.clamp(gB.position.x, PLAY_MIN_X - bB.minX, PLAY_MAX_X - bB.maxX);
+                        gB.position.z = THREE.MathUtils.clamp(gB.position.z, PLAY_MIN_Z + bB.rZ, PLAY_MAX_Z - bB.rZ);
 
                         const kx = gA.userData.vx - gB.userData.vx;
                         const kz = gA.userData.vz - gB.userData.vz;
