@@ -7,7 +7,7 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta http-equiv="Content-Security-Policy"
         content="default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self' data: blob:; media-src 'self' data: blob:;">
-    <meta name="theme-color" content="#123838">
+    <meta name="theme-color" content="#071718">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Akdeniz Bardak">
@@ -40,7 +40,8 @@
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #123838;
+            background: #123838;
+            background: linear-gradient(180deg, #071718 0%, #0d2a2b 45%, #123838 100%);
         }
 
         body {
@@ -54,7 +55,8 @@
             overflow: hidden;
             overscroll-behavior: none;
             -webkit-overflow-scrolling: auto;
-            background-color: #123838;
+            background: #123838;
+            background: linear-gradient(180deg, #071718 0%, #0d2a2b 45%, #123838 100%);
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
             color: #fff8eb;
             touch-action: none;
@@ -83,19 +85,8 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #123838;
-        }
-
-        /* Başlangıç Ekranı Görseli */
-        #splash-bg-img {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            object-position: center bottom;
-            pointer-events: none;
-            z-index: 1;
+            background: #123838;
+            background: linear-gradient(180deg, #071718 0%, #0d2a2b 45%, #123838 100%);
         }
 
         #webgl-canvas {
@@ -255,33 +246,148 @@
         }
 
         /* ===================================================================== */
-        /* AÇILIŞ & BAŞLAMA EKRANI (GENİŞLETİLMİŞ ARKA PLAN + PNG BUTONLAR)     */
+        /* AÇILIŞ & BAŞLAMA EKRANI (LÜKS AKDENİZ GRADIENT + PNG BUTONLAR)        */
         /* ===================================================================== */
         #start-menu-overlay {
             position: fixed;
             inset: 0;
             z-index: 50;
-            background-color: #123838;
+            background: #123838;
+            background: linear-gradient(180deg, #071718 0%, #0d2a2b 45%, #123838 100%);
             overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        /* Merkezi 9:16 güvenli alan çerçevesi: Butonları 3 kupalı kaidenin tam altına hizalar */
         #splash-safe-frame {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
+            position: relative;
+            width: 100%;
+            max-width: 440px;
+            height: 100%;
+            max-height: 840px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: max(28px, calc(env(safe-area-inset-top, 0px) + 20px)) 24px max(32px, calc(env(safe-area-inset-bottom, 0px) + 24px)) 24px;
+            box-sizing: border-box;
             z-index: 2;
             pointer-events: none;
         }
 
+        .splash-hero-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .splash-pill-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(18, 56, 56, 0.75);
+            border: 1px solid rgba(245, 158, 11, 0.45);
+            color: #fef3c7;
+            padding: 5px 14px;
+            border-radius: 999px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+        }
+
+        .splash-main-title {
+            font-size: clamp(1.8rem, 6.2vw, 2.5rem);
+            font-weight: 800;
+            margin: 12px 0 6px 0;
+            letter-spacing: 0.03em;
+            background: linear-gradient(135deg, #ffffff 0%, #fef3c7 40%, #fbbf24 85%, #d97706 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+            line-height: 1.15;
+        }
+
+        .splash-subtitle {
+            font-size: clamp(0.82rem, 2.8vw, 0.95rem);
+            color: #cbd5e1;
+            font-weight: 500;
+            max-width: 320px;
+            line-height: 1.4;
+            opacity: 0.92;
+        }
+
+        /* 3 Kupa Vitrini (Hafif slot kupaları, anında yüklenir) */
+        .splash-cups-showcase {
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            height: clamp(130px, 22vh, 180px);
+            margin: 20px 0;
+        }
+
+        .splash-cup-item {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .splash-cup-item.side {
+            width: clamp(62px, 16vw, 84px);
+            opacity: 0.88;
+            filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.45));
+            transform: translateY(6px);
+        }
+
+        .splash-cup-item.center-hero {
+            width: clamp(86px, 23vw, 115px);
+            z-index: 3;
+            filter: drop-shadow(0 14px 26px rgba(245, 158, 11, 0.35)) drop-shadow(0 10px 20px rgba(0, 0, 0, 0.65));
+            transform: translateY(-4px);
+        }
+
+        .splash-cup-item img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        .splash-halo-glow {
+            position: absolute;
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 110%;
+            height: 22px;
+            background: radial-gradient(ellipse at center, rgba(245, 158, 11, 0.55) 0%, rgba(245, 158, 11, 0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .splash-controls-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            gap: 16px;
+            margin-bottom: 8px;
+        }
+
         /* BAŞLAT Butonu (Orijinal Altın çerçeveli BAŞLAT düğmesi-1.png, 2033x592 tam oranlı) */
         #btn-splash-start {
-            position: absolute;
-            left: 50%;
-            top: 71.5%;
-            transform: translate(-50%, -50%);
-            width: 66%;
+            width: min(84%, 290px);
             aspect-ratio: 2033 / 592;
             background: transparent;
             border: none;
@@ -290,17 +396,19 @@
             padding: 0;
             cursor: pointer;
             pointer-events: auto;
-            filter: drop-shadow(0 12px 20px rgba(10, 30, 26, 0.48));
+            touch-action: manipulation;
+            filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.55));
             transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.16s ease;
+            display: block;
         }
 
         #btn-splash-start:hover {
-            transform: translate(-50%, -51.5%) scale(1.025);
-            filter: drop-shadow(0 16px 26px rgba(10, 30, 26, 0.58)) brightness(1.05);
+            transform: scale(1.035);
+            filter: drop-shadow(0 16px 28px rgba(0, 0, 0, 0.65)) brightness(1.06);
         }
 
         #btn-splash-start:active {
-            transform: translate(-50%, -49%) scale(0.965);
+            transform: scale(0.965);
         }
 
         #btn-splash-start img {
@@ -311,12 +419,16 @@
             pointer-events: none;
         }
 
-        /* Alt Yuvarlak Butonlar: Ayarlar (Sol) ve Ses (Sağ) */
+        .splash-bottom-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 32px;
+            pointer-events: auto;
+        }
+
         .splash-circle-btn {
-            position: absolute;
-            top: 85.5%;
-            transform: translate(-50%, -50%);
-            width: 18.5%;
+            width: clamp(54px, 14vw, 68px);
             aspect-ratio: 1 / 1;
             background: transparent;
             border: none;
@@ -325,17 +437,18 @@
             padding: 0;
             cursor: pointer;
             pointer-events: auto;
-            filter: drop-shadow(0 9px 14px rgba(68, 42, 16, 0.40));
+            touch-action: manipulation;
+            filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.45));
             transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.16s ease;
         }
 
         .splash-circle-btn:hover {
-            transform: translate(-50%, -51.5%) scale(1.04);
-            filter: drop-shadow(0 12px 18px rgba(68, 42, 16, 0.48)) brightness(1.04);
+            transform: scale(1.06);
+            filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.55)) brightness(1.05);
         }
 
         .splash-circle-btn:active {
-            transform: translate(-50%, -49%) scale(0.94);
+            transform: scale(0.94);
         }
 
         .splash-circle-btn img {
@@ -344,14 +457,6 @@
             display: block;
             object-fit: contain;
             pointer-events: none;
-        }
-
-        #btn-splash-settings {
-            left: 36.5%;
-        }
-
-        #btn-splash-sound {
-            left: 63.5%;
         }
 
         #btn-splash-sound.sound-off::after {
@@ -1012,29 +1117,53 @@
             </button>
         </header>
 
-        <!-- 5. AÇILIŞ & BAŞLAMA EKRANI: GENİŞLETİLMİŞ GÖRSEL (Akdeniz terasında altın kupa sergisi-1.png) ÜZERİNDE PNG BUTONLAR -->
+        <!-- 5. AÇILIŞ & BAŞLAMA EKRANI: ANINDA YÜKLENEN ZARİF AKDENİZ LÜKS MENÜSÜ -->
         <div id="start-menu-overlay">
-            <img id="splash-bg-img" src="Akdeniz terasında altın kupa sergisi-1.png"
-                alt="Akdeniz Terasında Altın Kupa Sergisi">
-
             <div id="splash-safe-frame">
-                <!-- BAŞLAT Butonu -->
-                <button id="btn-splash-start" type="button" onclick="startOrResumeGame(event)"
-                    aria-label="Oyunu Başlat">
-                    <img src="Altın çerçeveli BAŞLAT düğmesi-1.png" alt="BAŞLAT">
-                </button>
+                <!-- Üst Başlık ve Kupa Vitrini -->
+                <div class="splash-hero-box">
+                    <span class="splash-pill-tag">✨ AKDENİZ TERASI</span>
+                    <h1 class="splash-main-title">BARDAK OYUNU</h1>
+                    <p class="splash-subtitle">Kupaları kaydır, birleştir ve efsanevi altın kadehe ulaş!</p>
+                </div>
 
-                <!-- AYARLAR Butonu -->
-                <button id="btn-splash-settings" type="button" class="splash-circle-btn"
-                    onclick="openSettingsModal(event)" aria-label="Ayarlar">
-                    <img src="Fildişi Altın Ayar Dişlisi-1.png" alt="Ayarlar">
-                </button>
+                <!-- 3 Kupa Vitrini (Hafif ve Hızlı PNG'ler, Sıfır Gecikme) -->
+                <div class="splash-cups-showcase">
+                    <div class="splash-cup-item side">
+                        <img src="kupa_slot_3.png" alt="Adaçayı Kupa">
+                    </div>
+                    <div class="splash-cup-item center-hero">
+                        <img src="kupa_slot_7.png" alt="Altın Şampiyon Kadeh">
+                        <div class="splash-halo-glow"></div>
+                    </div>
+                    <div class="splash-cup-item side">
+                        <img src="kupa_slot_5.png" alt="Kobalt Kupa">
+                    </div>
+                </div>
 
-                <!-- SES Butonu -->
-                <button id="btn-splash-sound" type="button" class="splash-circle-btn"
-                    onclick="toggleSoundEffects(event)" aria-label="Ses Aç/Kapat">
-                    <img src="Altın çerçeveli ses düğmesi-2.png" alt="Ses">
-                </button>
+                <!-- Alt Butonlar Grubu: BAŞLAT, AYARLAR & SES -->
+                <div class="splash-controls-box">
+                    <!-- BAŞLAT Butonu -->
+                    <button id="btn-splash-start" type="button" onclick="startOrResumeGame(event)"
+                        aria-label="Oyunu Başlat">
+                        <img src="Altın çerçeveli BAŞLAT düğmesi-1.png" alt="BAŞLAT">
+                    </button>
+
+                    <!-- Alt Yuvarlak Butonlar -->
+                    <div class="splash-bottom-row">
+                        <!-- AYARLAR Butonu -->
+                        <button id="btn-splash-settings" type="button" class="splash-circle-btn"
+                            onclick="openSettingsModal(event)" aria-label="Ayarlar">
+                            <img src="Fildişi Altın Ayar Dişlisi-1.png" alt="Ayarlar">
+                        </button>
+
+                        <!-- SES Butonu -->
+                        <button id="btn-splash-sound" type="button" class="splash-circle-btn"
+                            onclick="toggleSoundEffects(event)" aria-label="Ses Aç/Kapat">
+                            <img src="Altın çerçeveli ses düğmesi-2.png" alt="Ses">
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1724,9 +1853,15 @@
         function startOrResumeGame(ev) {
             stopEvt(ev);
             ensureAudioContext();
-            document.getElementById('start-menu-overlay').classList.add('hidden');
-            document.getElementById('settings-modal-overlay').classList.add('hidden');
-            document.getElementById('legal-modal-overlay').classList.add('hidden');
+            if (!scene || !renderer) {
+                bootGameEngine();
+            }
+            const splash = document.getElementById('start-menu-overlay');
+            if (splash) splash.classList.add('hidden');
+            const settings = document.getElementById('settings-modal-overlay');
+            if (settings) settings.classList.add('hidden');
+            const legal = document.getElementById('legal-modal-overlay');
+            if (legal) legal.classList.add('hidden');
 
             if (!hasStartedOnce) {
                 hasStartedOnce = true;
@@ -1855,22 +1990,8 @@
             };
         }
 
-        // Hem oyun arka planını hem de başlangıç ekranı güvenli alanını orantılar
         function updateResponsiveTerraceLayout() {
-            const dims = getStageDimensions();
-            const W = dims.width;
-            const H = dims.height;
-
-            const safeScale = Math.min(W / CORE_SAFE_W, H / CORE_SAFE_H);
-
-            // Başlangıç ekranındaki butonların yer aldığı merkezi 9:16 güvenli çerçeveyi kaidenin tam altına oturtur
-            const splashFrame = document.getElementById('splash-safe-frame');
-            if (splashFrame) {
-                const frameW = Math.round(CORE_SAFE_W * safeScale);
-                const frameH = Math.round(CORE_SAFE_H * safeScale);
-                splashFrame.style.width = `${frameW}px`;
-                splashFrame.style.height = `${frameH}px`;
-            }
+            // Viewport ve sahne boyutlarını güncel tutar
         }
 
         function createCausticGlowTexture() {
@@ -2034,16 +2155,16 @@
                 // Dar mobil ekranlar (iPhone, Android 19:9, 20:9):
                 // Masayı alt güçlendirici butonların hemen üstüne rahat nefes payıyla yaklaştırır,
                 // masanın üst tarafındaki bardakların (7. seviye şampiyon kadeh dahil) skor panosunun arkasında kalmasını kesinlikle engeller.
-                responsiveDist = 12.6 * (0.5625 / Math.max(0.32, aspect)) * 0.90;
-                currentTarget.set(0, -0.80, 0.00);
+                responsiveDist = 12.3 * (0.5625 / Math.max(0.32, aspect)) * 0.88;
+                currentTarget.set(0, -0.78, 0.30);
             } else if (aspect < 1.0) {
                 // Tablet ve kareye yakın dikey ekranlar
-                responsiveDist = 11.6 - (aspect - 0.5625) * 1.5;
-                currentTarget.set(0, -0.78, 0.15);
+                responsiveDist = 11.5 - (aspect - 0.5625) * 1.5;
+                currentTarget.set(0, -0.78, 0.25);
             } else {
                 // Yatay ekranlar
-                responsiveDist = 11.0;
-                currentTarget.set(0, -0.75, 0.62);
+                responsiveDist = 10.8;
+                currentTarget.set(0, -0.75, 0.50);
             }
 
             const sinP = Math.sin(camState.polar);
@@ -3485,6 +3606,11 @@
             canvas.addEventListener('pointerdown', (e) => {
                 if (!isGameActive) return;
                 if (e.button !== undefined && e.button !== 0) return;
+                try {
+                    if (e.pointerId && canvas.setPointerCapture) {
+                        canvas.setPointerCapture(e.pointerId);
+                    }
+                } catch (_) { }
 
                 if (isTargetBlastActive) {
                     handleBlastTap(e, canvas);
@@ -3498,18 +3624,65 @@
 
             window.addEventListener('pointermove', (e) => {
                 if (!isGameActive || isTargetBlastActive) return;
+                if (!isPointerAiming) return;
                 const aimX = computeAimXFromEvent(e, canvas);
                 updateStraightAimGuide(aimX);
-            });
+            }, { passive: true });
 
-            window.addEventListener('pointerup', (e) => {
+            const finishAimAndLaunch = (e) => {
                 if (isTargetBlastActive) return;
                 if (!isPointerAiming) return;
                 isPointerAiming = false;
+                try {
+                    if (e && e.pointerId && canvas.releasePointerCapture) {
+                        canvas.releasePointerCapture(e.pointerId);
+                    }
+                } catch (_) { }
                 if (!isGameActive) return;
                 const aimX = computeAimXFromEvent(e, canvas);
                 launchWaitingGlassStraightAtX(aimX);
-            });
+            };
+
+            window.addEventListener('pointerup', finishAimAndLaunch, { passive: true });
+            window.addEventListener('pointercancel', finishAimAndLaunch, { passive: true });
+
+            // Splash ekranı butonlarına anında tepki veren pointerdown & click dinleyicileri
+            const splashStartBtn = document.getElementById('btn-splash-start');
+            if (splashStartBtn) {
+                const onStartTap = (e) => {
+                    if (e) {
+                        if (typeof e.preventDefault === 'function') e.preventDefault();
+                        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+                    }
+                    startOrResumeGame(e);
+                };
+                splashStartBtn.addEventListener('click', onStartTap);
+                splashStartBtn.addEventListener('pointerdown', onStartTap);
+            }
+
+            const splashSettingsBtn = document.getElementById('btn-splash-settings');
+            if (splashSettingsBtn) {
+                const onSettingsTap = (e) => {
+                    if (e) {
+                        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+                    }
+                    openSettingsModal(e);
+                };
+                splashSettingsBtn.addEventListener('click', onSettingsTap);
+                splashSettingsBtn.addEventListener('pointerdown', onSettingsTap);
+            }
+
+            const splashSoundBtn = document.getElementById('btn-splash-sound');
+            if (splashSoundBtn) {
+                const onSoundTap = (e) => {
+                    if (e) {
+                        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+                    }
+                    toggleSoundEffects(e);
+                };
+                splashSoundBtn.addEventListener('click', onSoundTap);
+                splashSoundBtn.addEventListener('pointerdown', onSoundTap);
+            }
 
             const onViewportChange = () => {
                 const dims = getStageDimensions();
@@ -3538,7 +3711,7 @@
         }
 
         // =========================================================================
-        // 10. ANA OYUN DÖNGÜSÜ
+        // 10. ANA OYUN DÖNGÜSÜ VE ANINDA BAŞLATMA BOOTLOADER
         // =========================================================================
         function animate() {
             requestAnimationFrame(animate);
@@ -3550,12 +3723,21 @@
             renderer.render(scene, camera);
         }
 
-        window.onload = function () {
+        function bootGameEngine() {
+            if (window.__gameEngineBooted) return;
+            window.__gameEngineBooted = true;
             loadSavedPreferences();
             initScene();
             initEventListeners();
             animate();
-        };
+        }
+
+        if (document.readyState === 'interactive' || document.readyState === 'complete') {
+            bootGameEngine();
+        } else {
+            document.addEventListener('DOMContentLoaded', bootGameEngine);
+        }
+        window.addEventListener('load', bootGameEngine);
     </script>
 </body>
 
